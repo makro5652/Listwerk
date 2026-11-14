@@ -1,0 +1,90 @@
+package app.listwerk.android
+
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.material3.MaterialTheme
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import app.listwerk.android.ui.ListwerkTheme
+import app.listwerk.android.ui.LoginScreen
+import app.listwerk.android.ui.MainScreen
+import app.listwerk.android.ui.MainViewModel
+import app.listwerk.android.ui.Screen
+import app.listwerk.android.ui.SettingsScreen
+import app.listwerk.android.ui.UiEvent
+import kotlinx.coroutines.launch
+
+class MainActivity : ComponentActivity() {
+    private val vm: MainViewModel by viewModels()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        handleIntent(intent)
+
+        // Anmelde-Seite im Browser öffnen (Login Flow v2).
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                vm.uiEvents.collect { e ->
+                    if (e is UiEvent.OpenUrl) runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(e.url))) }
+                }
+            }
+        }
+
+        setContent {
+            val themeId by vm.themeId.collectAsState()
+            val signedIn by vm.signedIn.collectAsState()
+            val screen by vm.screen.collectAsState()
+            ListwerkTheme(container.themes, themeId) {
+                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    when {
+                        !signedIn -> LoginScreen(vm)
+                        screen == Screen.SETTINGS -> {
+                            BackHandler { vm.screen.value = Screen.MAIN }
+                            SettingsScreen(vm, onBack = { vm.screen.value = Screen.MAIN })
+                        }
+                        else -> MainScreen(vm, onRelogin = { vm.logout() })
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Beim Öffnen im Hintergrund abgleichen; die Oberfläche liest ausschließlich lokal.
+        if (container.prefs.signedIn) container.sync.schedule(0)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent?.action == ACTION_OPEN_LIST) {
+            intent.getStringExtra(EXTRA_LIST)?.let { vm.select(it) }
+            intent.getStringExtra(EXTRA_TASK)?.let { uid -> intent.getStringExtra(EXTRA_LIST)?.let { vm.openDetail(it, uid) } }
+        }
+    }
+
+    companion object {
+        const val ACTION_OPEN_LIST = "app.listwerk.android.action.OPEN_LIST"
+        const val EXTRA_LIST = "list"
+        const val EXTRA_TASK = "task"
+    }
+}
