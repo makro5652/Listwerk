@@ -15,9 +15,6 @@ object Fixture {
     )
 }
 
-/** Fester Zeitpunkt für reproduzierbare Zeitstempel: 2026-11-11 12:00:00 UTC. */
-val testNow: Instant = Instant.ofEpochSecond(1_794_398_400)
-
 fun unfoldedLines(s: String): List<String> = ICalText.unfold(s)
 
 fun doc(text: String): ICalDocument = requireNotNull(ICalDocument.parse(text)) { "kein VTODO" }

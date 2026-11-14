@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
+    `java-test-fixtures`
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
 }
@@ -17,6 +18,8 @@ kotlin {
 dependencies {
     api(libs.coroutines.core)
     implementation(libs.serialization.json)
+    testFixturesApi(libs.kotlin.test)
+    testFixturesApi(libs.junit)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit)
 }
