@@ -1,5 +1,6 @@
 package app.listwerk.android.tile
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
@@ -7,6 +8,7 @@ import android.service.quicksettings.TileService
 import app.listwerk.android.QuickAddActivity
 
 /** Kachel in den Schnelleinstellungen: öffnet den Schnelleintrag. */
+@SuppressLint("StartActivityAndCollapseDeprecated") // nur unterhalb API 34 genutzt
 class QuickAddTileService : TileService() {
     override fun onClick() {
         super.onClick()

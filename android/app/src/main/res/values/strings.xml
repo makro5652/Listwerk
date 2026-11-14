@@ -3,7 +3,6 @@
     <string name="app_name">Listwerk</string>
 
     <!-- Allgemein -->
-    <string name="ok">OK</string>
     <string name="action_add">Hinzufügen</string>
     <string name="action_back">Zurück</string>
     <string name="action_cancel">Abbrechen</string>
@@ -99,7 +98,7 @@
     <string name="planwerk_token_saved">Ein Token ist gespeichert; leer lassen, um es zu behalten.</string>
     <string name="planwerk_save_test">Speichern und testen</string>
     <string name="planwerk_removed">Planwerk-Verbindung entfernt.</string>
-    <string name="planwerk_connected">Planwerk verbunden (Revision %1$s).</string>
+    <string name="planwerk_connected">Planwerk verbunden (Revision %1$d).</string>
     <string name="planwerk_token_rejected">Planwerk hat das Token abgelehnt.</string>
     <string name="planwerk_failed">Planwerk nicht erreichbar: %1$s</string>
     <string name="planwerk_unreachable">Planwerk nicht erreichbar</string>

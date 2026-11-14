@@ -1,5 +1,6 @@
 package app.listwerk.android.ui
 
+import android.annotation.SuppressLint
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -104,6 +105,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("LocalContextGetResourceValueCall") // Sprache wird zur Laufzeit nicht gewechselt; Strings werden in einem Ereignis-Collector gebraucht
 @Composable
 fun MainScreen(vm: MainViewModel, onRelogin: () -> Unit) {
     val colors = MaterialTheme.listwerk
