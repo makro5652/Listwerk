@@ -30,6 +30,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -59,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import app.listwerk.android.BuildConfig
 import app.listwerk.android.R
 import app.listwerk.android.container
+import app.listwerk.android.data.AppPrefs
 import app.listwerk.core.Theme
 import app.listwerk.core.ThemeCatalog
 
@@ -69,6 +72,8 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit) {
     val catalog = remember { context.container.themes }
     val themeId by vm.themeId.collectAsState()
     val focus by vm.focusInput.collectAsState()
+    val startList by vm.startList.collectAsState()
+    val allLists by vm.lists.collectAsState()
     val planwerkUrl by vm.planwerkUrl.collectAsState()
     val tokenSaved by vm.planwerkTokenSaved.collectAsState()
     val account by remember { vm.account() }.collectAsState(initial = null)
@@ -98,6 +103,7 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit) {
                 Text(stringResource(R.string.settings_focus_input), Modifier.weight(1f))
                 Switch(checked = focus, onCheckedChange = vm::setFocusInput)
             }
+            StartListPicker(startList, allLists.orEmpty().map { it.href to it.name }, vm::setStartList)
 
             Header(stringResource(R.string.settings_notifications))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -161,6 +167,27 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit) {
             confirmButton = { TextButton(onClick = { confirmLogout = false; vm.logout() }) { Text(stringResource(R.string.logout)) } },
             dismissButton = { TextButton(onClick = { confirmLogout = false }) { Text(stringResource(R.string.action_cancel)) } },
         )
+    }
+}
+
+@Composable
+private fun StartListPicker(selected: String, lists: List<Pair<String, String>>, onSelect: (String) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    val label = when (selected) {
+        AppPrefs.START_LAST -> stringResource(R.string.start_list_last)
+        AppPrefs.ALL -> stringResource(R.string.all_open)
+        else -> lists.firstOrNull { it.first == selected }?.second ?: stringResource(R.string.start_list_last)
+    }
+    Column {
+        Text(stringResource(R.string.settings_start_list))
+        Box {
+            OutlinedButton(onClick = { open = true }, Modifier.fillMaxWidth()) { Text(label, Modifier.weight(1f)) }
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                DropdownMenuItem(text = { Text(stringResource(R.string.start_list_last)) }, onClick = { open = false; onSelect(AppPrefs.START_LAST) })
+                DropdownMenuItem(text = { Text(stringResource(R.string.all_open)) }, onClick = { open = false; onSelect(AppPrefs.ALL) })
+                for ((href, name) in lists) DropdownMenuItem(text = { Text(name) }, onClick = { open = false; onSelect(href) })
+            }
+        }
     }
 }
 

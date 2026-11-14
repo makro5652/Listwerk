@@ -23,6 +23,11 @@ class AppPrefs(context: Context) {
         get() = p.getString("last_list", null)
         set(v) = p.edit().putString("last_list", v).apply()
 
+    /** Beim Start zu öffnende Liste: [START_LAST] (zuletzt benutzte), [ALL] oder der Href einer Liste. */
+    var startList: String
+        get() = p.getString("start_list", START_LAST) ?: START_LAST
+        set(v) = p.edit().putString("start_list", v).apply()
+
     /** Zuletzt gewählte Liste, in die geschrieben werden darf (Ziel des Eingabefelds unter „Alle offenen“). */
     var lastWritableList: String?
         get() = p.getString("last_writable", null)
@@ -91,10 +96,13 @@ class AppPrefs(context: Context) {
     fun removeWidget(appWidgetId: Int) = widgets.edit().remove("list_$appWidgetId").apply()
 
     fun clearAccountData() {
-        p.edit().remove("last_list").remove("last_writable").remove("last_sync").remove("planwerk_links").remove("reminders_fired_until").putBoolean("signed_in", false).apply()
+        p.edit().remove("last_list").remove("start_list").remove("last_writable").remove("last_sync").remove("planwerk_links").remove("reminders_fired_until").putBoolean("signed_in", false).apply()
     }
 
     companion object {
         const val ALL = "*"
+
+        /** Platzhalter für „zuletzt benutzte Liste“ (kein gültiger Href). */
+        const val START_LAST = "@last"
     }
 }

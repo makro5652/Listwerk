@@ -126,6 +126,8 @@
     <string name="theme_system">System</string>
     <string name="settings_behavior">Verhalten</string>
     <string name="settings_focus_input">Eingabefeld beim Start fokussieren</string>
+    <string name="settings_start_list">Beim Start öffnen</string>
+    <string name="start_list_last">Zuletzt benutzte Liste</string>
     <string name="settings_notifications">Erinnerungen</string>
     <string name="settings_notification_settings">Benachrichtigungen</string>
     <string name="settings_exact_alarms">Exakte Alarme</string>

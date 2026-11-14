@@ -74,7 +74,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val themes get() = c.themes
 
     /** Gewählte Liste (Href) oder [AppPrefs.ALL]. Beim Start die zuletzt benutzte. */
-    val selection = MutableStateFlow(prefs.lastList ?: AppPrefs.ALL)
+    val selection = MutableStateFlow(
+        prefs.startList.let { if (it == AppPrefs.START_LAST) prefs.lastList ?: AppPrefs.ALL else it },
+    )
+
+    /** In den Einstellungen gewählte Startliste ([AppPrefs.START_LAST], [AppPrefs.ALL] oder Href). */
+    val startList = MutableStateFlow(prefs.startList)
     val detail = MutableStateFlow<Pair<String, String>?>(null)
 
     private val events = Channel<UiEvent>(Channel.BUFFERED)
@@ -109,6 +114,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // Auswahl prüfen, sobald die Listen da sind (zuletzt benutzte Liste kann inzwischen gelöscht sein).
         viewModelScope.launch {
             val l = lists.filterNotNull().first()
+            // Gewählte Startliste existiert nicht mehr (gelöscht, Konto gewechselt): zurück auf „zuletzt benutzte“.
+            val start = startList.value
+            if (signedIn.value && start != AppPrefs.START_LAST && start != AppPrefs.ALL && l.none { it.href == start }) setStartList(AppPrefs.START_LAST)
             if (signedIn.value && selection.value != AppPrefs.ALL && l.none { it.href == selection.value }) {
                 select(l.firstOrNull()?.href ?: AppPrefs.ALL)
             }
@@ -131,6 +139,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setTheme(id: String) { themeId.value = id; prefs.themeId = id; c.widgets.update() }
+
+    fun setStartList(value: String) { startList.value = value; prefs.startList = value }
 
     fun setFocusInput(on: Boolean) { focusInput.value = on; prefs.focusInputOnStart = on }
 
