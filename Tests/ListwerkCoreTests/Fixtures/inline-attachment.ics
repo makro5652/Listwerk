@@ -1,0 +1,10 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//DE
+BEGIN:VTODO
+UID:att-0001
+SUMMARY:Mit Anhängen
+ATTACH;FMTTYPE=application/pdf;FILENAME=Anhang.pdf:https://cloud.example.org/remote.php/dav/files/nutzer/Listwerk/att-0001/Anhang.pdf
+ATTACH;ENCODING=BASE64;VALUE=BINARY;FMTTYPE=text/plain:SGFsbG8gV2VsdA==
+END:VTODO
+END:VCALENDAR

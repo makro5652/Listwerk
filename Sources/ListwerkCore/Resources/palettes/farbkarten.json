@@ -1,0 +1,127 @@
+{
+  "id": "farbkarten",
+  "name": "Farbkarten",
+  "storedVariant": "hex",
+  "colors": [
+    {
+      "id": "mohnrot",
+      "name": "Mohnrot",
+      "hex": "#e03c31",
+      "hexDark": "#e7675e"
+    },
+    {
+      "id": "koralle",
+      "name": "Koralle",
+      "hex": "#ff6f59",
+      "hexDark": "#ff8f7e"
+    },
+    {
+      "id": "mandarine",
+      "name": "Mandarine",
+      "hex": "#f28c28",
+      "hexDark": "#f5a557"
+    },
+    {
+      "id": "honig",
+      "name": "Honig",
+      "hex": "#f2b134",
+      "hexDark": "#f5c261"
+    },
+    {
+      "id": "zitrone",
+      "name": "Zitrone",
+      "hex": "#f7dc4a",
+      "hexDark": "#f9e472"
+    },
+    {
+      "id": "limette",
+      "name": "Limette",
+      "hex": "#b5d334",
+      "hexDark": "#c5dd61"
+    },
+    {
+      "id": "wiese",
+      "name": "Wiese",
+      "hex": "#5db04b",
+      "hexDark": "#80c371"
+    },
+    {
+      "id": "tanne",
+      "name": "Tanne",
+      "hex": "#1f7a5a",
+      "hexDark": "#2fb988"
+    },
+    {
+      "id": "lagune",
+      "name": "Lagune",
+      "hex": "#17a2a2",
+      "hexDark": "#21dfdf"
+    },
+    {
+      "id": "himmel",
+      "name": "Himmel",
+      "hex": "#4fb3e8",
+      "hexDark": "#76c4ed"
+    },
+    {
+      "id": "kobalt",
+      "name": "Kobalt",
+      "hex": "#2f6fde",
+      "hexDark": "#5d8fe5"
+    },
+    {
+      "id": "indigo",
+      "name": "Indigo",
+      "hex": "#4b4fbf",
+      "hexDark": "#7376cd"
+    },
+    {
+      "id": "veilchen",
+      "name": "Veilchen",
+      "hex": "#8a5cd0",
+      "hexDark": "#a480da"
+    },
+    {
+      "id": "orchidee",
+      "name": "Orchidee",
+      "hex": "#c45bc8",
+      "hexDark": "#d17fd4"
+    },
+    {
+      "id": "fuchsia",
+      "name": "Fuchsia",
+      "hex": "#e0457b",
+      "hexDark": "#e76e98"
+    },
+    {
+      "id": "rose",
+      "name": "Rosé",
+      "hex": "#f29ab2",
+      "hexDark": "#f5b0c3"
+    },
+    {
+      "id": "terrakotta",
+      "name": "Terrakotta",
+      "hex": "#b5651d",
+      "hexDark": "#df8635"
+    },
+    {
+      "id": "kaffee",
+      "name": "Kaffee",
+      "hex": "#7b4b2a",
+      "hexDark": "#b46e3d"
+    },
+    {
+      "id": "schiefer",
+      "name": "Schiefer",
+      "hex": "#5b6770",
+      "hexDark": "#7b8994"
+    },
+    {
+      "id": "graphit",
+      "name": "Graphit",
+      "hex": "#2e3338",
+      "hexDark": "#566069"
+    }
+  ]
+}

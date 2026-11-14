@@ -1,0 +1,9 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//DE
+BEGIN:VTODO
+UID:long-0001
+SUMMARY:Übungsaufgaben zu Säuren\, Basen und Salzen – Größe der Gruppen prüfen ✓ 🧪 danach Protokoll
+DESCRIPTION:Zeile eins\nZeile zwei mit Umlauten äöüß und einem sehr langen Text\, der gefaltet werden muss\, weil er die 75 Oktette überschreitet.\nZeile drei: Semikolon\; Komma\, Backslash \\ Ende.
+END:VTODO
+END:VCALENDAR

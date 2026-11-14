@@ -1,0 +1,19 @@
+{
+  "id": "catppuccin-frappe",
+  "name": "Catppuccin Frappé",
+  "isDark": true,
+  "license": "Catppuccin palette, MIT License, https://github.com/catppuccin/palette",
+  "colors": {
+    "background": "#303446",
+    "sidebar": "#292c3c",
+    "surface": "#414559",
+    "surfaceElevated": "#51576d",
+    "textPrimary": "#c6d0f5",
+    "textSecondary": "#b5bfe2",
+    "accent": "#8caaee",
+    "separator": "#626880",
+    "success": "#a6d189",
+    "warning": "#e5c890",
+    "danger": "#e78284"
+  }
+}

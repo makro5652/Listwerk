@@ -1,0 +1,119 @@
+{
+  "id": "catppuccin",
+  "name": "Catppuccin",
+  "storedVariant": "latte",
+  "colors": [
+    {
+      "id": "rosewater",
+      "name": "Rosewater",
+      "latte": "#dc8a78",
+      "frappe": "#f2d5cf",
+      "macchiato": "#f4dbd6",
+      "mocha": "#f5e0dc"
+    },
+    {
+      "id": "flamingo",
+      "name": "Flamingo",
+      "latte": "#dd7878",
+      "frappe": "#eebebe",
+      "macchiato": "#f0c6c6",
+      "mocha": "#f2cdcd"
+    },
+    {
+      "id": "pink",
+      "name": "Pink",
+      "latte": "#ea76cb",
+      "frappe": "#f4b8e4",
+      "macchiato": "#f5bde6",
+      "mocha": "#f5c2e7"
+    },
+    {
+      "id": "mauve",
+      "name": "Mauve",
+      "latte": "#8839ef",
+      "frappe": "#ca9ee6",
+      "macchiato": "#c6a0f6",
+      "mocha": "#cba6f7"
+    },
+    {
+      "id": "red",
+      "name": "Red",
+      "latte": "#d20f39",
+      "frappe": "#e78284",
+      "macchiato": "#ed8796",
+      "mocha": "#f38ba8"
+    },
+    {
+      "id": "maroon",
+      "name": "Maroon",
+      "latte": "#e64553",
+      "frappe": "#ea999c",
+      "macchiato": "#ee99a0",
+      "mocha": "#eba0ac"
+    },
+    {
+      "id": "peach",
+      "name": "Peach",
+      "latte": "#fe640b",
+      "frappe": "#ef9f76",
+      "macchiato": "#f5a97f",
+      "mocha": "#fab387"
+    },
+    {
+      "id": "yellow",
+      "name": "Yellow",
+      "latte": "#df8e1d",
+      "frappe": "#e5c890",
+      "macchiato": "#eed49f",
+      "mocha": "#f9e2af"
+    },
+    {
+      "id": "green",
+      "name": "Green",
+      "latte": "#40a02b",
+      "frappe": "#a6d189",
+      "macchiato": "#a6da95",
+      "mocha": "#a6e3a1"
+    },
+    {
+      "id": "teal",
+      "name": "Teal",
+      "latte": "#179299",
+      "frappe": "#81c8be",
+      "macchiato": "#8bd5ca",
+      "mocha": "#94e2d5"
+    },
+    {
+      "id": "sky",
+      "name": "Sky",
+      "latte": "#04a5e5",
+      "frappe": "#99d1db",
+      "macchiato": "#91d7e3",
+      "mocha": "#89dceb"
+    },
+    {
+      "id": "sapphire",
+      "name": "Sapphire",
+      "latte": "#209fb5",
+      "frappe": "#85c1dc",
+      "macchiato": "#7dc4e4",
+      "mocha": "#74c7ec"
+    },
+    {
+      "id": "blue",
+      "name": "Blue",
+      "latte": "#1e66f5",
+      "frappe": "#8caaee",
+      "macchiato": "#8aadf4",
+      "mocha": "#89b4fa"
+    },
+    {
+      "id": "lavender",
+      "name": "Lavender",
+      "latte": "#7287fd",
+      "frappe": "#babbf1",
+      "macchiato": "#b7bdf8",
+      "mocha": "#b4befe"
+    }
+  ]
+}

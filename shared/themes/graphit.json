@@ -1,0 +1,18 @@
+{
+  "id": "graphit",
+  "name": "Graphit",
+  "isDark": true,
+  "colors": {
+    "background": "#1b1d1f",
+    "sidebar": "#141516",
+    "surface": "#25282b",
+    "surfaceElevated": "#2f3337",
+    "textPrimary": "#eceeef",
+    "textSecondary": "#b4babf",
+    "accent": "#5db0f0",
+    "separator": "#3b4045",
+    "success": "#5cc26f",
+    "warning": "#e0a53a",
+    "danger": "#f0766a"
+  }
+}

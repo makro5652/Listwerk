@@ -1,0 +1,19 @@
+{
+  "id": "catppuccin-latte",
+  "name": "Catppuccin Latte",
+  "isDark": false,
+  "license": "Catppuccin palette, MIT License, https://github.com/catppuccin/palette",
+  "colors": {
+    "background": "#eff1f5",
+    "sidebar": "#e6e9ef",
+    "surface": "#dce0e8",
+    "surfaceElevated": "#bcc0cc",
+    "textPrimary": "#4c4f69",
+    "textSecondary": "#5c5f77",
+    "accent": "#1e66f5",
+    "separator": "#acb0be",
+    "success": "#40a02b",
+    "warning": "#df8e1d",
+    "danger": "#d20f39"
+  }
+}

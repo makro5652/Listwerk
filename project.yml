@@ -1,0 +1,56 @@
+# XcodeGen-Konfiguration. Am Mac: brew install xcodegen && xcodegen && open Listwerk.xcodeproj
+name: Listwerk
+options:
+  bundleIdPrefix: app.listwerk   # PLATZHALTER: bitte durch die eigene Kennung ersetzen
+  deploymentTarget:
+    macOS: "14.0"
+    iOS: "17.0"
+packages:
+  Listwerk:
+    path: .
+targets:
+  Listwerk-macOS:
+    type: application
+    platform: macOS
+    sources: [App/Shared, App/macOS]
+    dependencies:
+      - package: Listwerk
+        product: ListwerkCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.listwerk.mac
+        PRODUCT_NAME: Listwerk
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        ENABLE_HARDENED_RUNTIME: YES
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_ENTITLEMENTS: App/macOS/Listwerk.entitlements
+    info:
+      path: App/macOS/Info.plist
+      properties:
+        CFBundleDisplayName: Listwerk
+        LSApplicationCategoryType: public.app-category.productivity
+  Listwerk-iPad:
+    type: application
+    platform: iOS
+    sources: [App/Shared, App/iPad]
+    dependencies:
+      - package: Listwerk
+        product: ListwerkCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.listwerk.ipad
+        PRODUCT_NAME: Listwerk
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "2"   # nur iPad
+        GENERATE_INFOPLIST_FILE: YES
+    info:
+      path: App/iPad/Info.plist
+      properties:
+        CFBundleDisplayName: Listwerk
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
