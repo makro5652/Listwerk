@@ -157,7 +157,7 @@ public struct CalDAVClient: CalDAVService {
         return lists
     }
 
-    /// Eigene Listen: Der Principal-Name (`/principals/users/nutzer/`) steckt auch im Home-Pfad (`/calendars/nutzer/`).
+    /// Eigene Listen: Der Principal-Name (`/principals/users/marv/`) steckt auch im Home-Pfad (`/calendars/marv/`).
     private static func ownerMatchesHome(_ owner: String, home: String) -> Bool {
         guard let name = owner.split(separator: "/").last else { return true }
         return home.split(separator: "/").contains(name)

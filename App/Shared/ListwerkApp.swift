@@ -13,6 +13,8 @@ struct ListwerkApp: App {
         }
         #if os(macOS)
         .commands { SidebarCommands() }
+        #endif
+        #if os(macOS)
         Settings {
             SettingsView().environment(model)
         }

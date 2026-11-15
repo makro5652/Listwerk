@@ -40,10 +40,11 @@ final class AppModel {
     init() {
         let url = Self.databaseURL()
         // Ein defekter Datenträger soll die App nicht beim Start abstürzen lassen.
-        store = (try? Store(path: url.path)) ?? (try! Store.inMemory())
-        themeID = (try? store.setting("theme")) ?? ThemeCatalog.systemID
-        planwerkURL = (try? store.setting("planwerk.url")) ?? ""
-        account = try? store.account()
+        let s = (try? Store(path: url.path)) ?? (try! Store.inMemory())
+        store = s
+        themeID = (try? s.setting("theme")) ?? ThemeCatalog.systemID
+        planwerkURL = (try? s.setting("planwerk.url")) ?? ""
+        account = try? s.account()
         reloadLists()
         if let first = lists.first { selection = .list(first.href) } else { selection = .all }
         configureEngine()
@@ -261,8 +262,11 @@ final class AppModel {
         set { newValue.isEmpty ? CredentialStore.delete(account: "planwerk-token") : CredentialStore.save(newValue, account: "planwerk-token") }
     }
 
-    func refreshPlanwerk() async {
-        guard let base = URL(string: planwerkURL), !planwerkURL.isEmpty, !planwerkToken.isEmpty else { return }
+    @discardableResult
+    func refreshPlanwerk() async -> String {
+        guard let base = URL(string: planwerkURL), !planwerkURL.isEmpty, !planwerkToken.isEmpty else {
+            return "Adresse und Token eintragen."
+        }
         let cache = PlanwerkLinkCache(connector: PlanwerkClient(baseURL: base, token: planwerkToken))
         do {
             try await cache.apply(to: store)
@@ -270,9 +274,58 @@ final class AppModel {
             var map: [String: PlanwerkLink] = [:]
             for l in links { map[l.listPath] = l }
             planwerkLinks = map
+            return "Verbunden. \(links.count) Projekt(e) mit Nextcloud-Liste verknüpft."
         } catch {
             // Planwerk ist optional; ein Fehler blockiert nichts.
             statusMessage = "Planwerk nicht erreichbar."
+            return "Fehler: \(error)"
         }
     }
+
+    // MARK: Microsoft To Do (Import)
+
+    var msClientID: String {
+        get { (try? store.setting("mstodo.clientid")) ?? "" }
+        set { try? store.setSetting("mstodo.clientid", newValue.trimmingCharacters(in: .whitespaces)) }
+    }
+    var msConnected: Bool { CredentialStore.load(account: "mstodo-refresh") != nil }
+    var msLogin: MSTodoClient.DeviceCode?     // Code, den der Nutzer auf microsoft.com/link eingibt
+
+    /// Verbindet per Geräte-Code (falls nötig) und importiert alle Listen. Gibt eine Meldung für die Oberfläche zurück.
+    func importMSTodo() async -> String {
+        guard !msClientID.isEmpty else { return "Bitte zuerst die App-ID (Client-ID) eintragen." }
+        guard let home = account?.homePath else { return "Zuerst mit Nextcloud verbinden." }
+        let client = MSTodoClient(clientID: msClientID)
+        do {
+            var tokens: MSTodoClient.Tokens
+            if let refresh = CredentialStore.load(account: "mstodo-refresh") {
+                do { tokens = try await client.refresh(refresh) } catch DAVError.http(let st, _) where st == 400 {
+                    CredentialStore.delete(account: "mstodo-refresh")   // Token widerrufen oder abgelaufen
+                    return "Anmeldung abgelaufen, bitte erneut auf „Verbinden“ klicken."
+                }
+            } else {
+                let code = try await client.startDeviceLogin()
+                msLogin = code
+                defer { msLogin = nil }
+                let deadline = Date().addingTimeInterval(TimeInterval(code.expiresIn))
+                var found: MSTodoClient.Tokens?
+                while found == nil, Date() < deadline {
+                    try await Task.sleep(for: .seconds(code.interval))
+                    found = try await client.pollDeviceLogin(code)
+                }
+                guard let f = found else { return "Anmeldung abgelaufen, bitte erneut versuchen." }
+                tokens = f
+            }
+            CredentialStore.save(tokens.refresh, account: "mstodo-refresh")
+            let data = try await client.fetchAll(accessToken: tokens.access)
+            let n = try store.importMSTodo(data, homePath: home)
+            reloadAll()
+            scheduleSync()
+            return "\(n.lists) Liste(n), \(n.tasks) Aufgabe(n) importiert."
+        } catch {
+            return "Fehler: \(error)"
+        }
+    }
+
+    func disconnectMSTodo() { CredentialStore.delete(account: "mstodo-refresh") }
 }

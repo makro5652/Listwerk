@@ -63,15 +63,15 @@ final class ThemeTests: XCTestCase {
 }
 
 final class PlanwerkTests: XCTestCase {
-    // Beispielantwort von GET /api/state (frei erfundene Daten).
+    // Aufbau nach src/db.rs (Tabellen projects, task_groups, members) und GET /api/state.
     static let stateJSON = """
-    {"rev":42,"teams":[],"members":[{"id":1,"name":"Erika Beispiel","email":"","color":"#40a02b"},{"id":2,"name":"Anton","email":"","color":"#40a02b"}],
+    {"rev":42,"teams":[],"members":[{"id":1,"name":"Mia Muster","email":"","color":"#40a02b"},{"id":2,"name":"Jona","email":"","color":"#40a02b"}],
      "projects":[
-      {"id":3,"name":"Projekt Alpha","description":"","color":"#2bb07f","start_date":"2026-08-24","end_date":"2027-06-25","team_id":1,"archived":0,"sort":0,
-       "nc_calendar":"https://cloud.example.org/remote.php/dav/calendars/nutzer/projekt-alpha","nc_calendar_name":"Projekt Alpha","lessons":"Di D"},
+      {"id":3,"name":"9a Chemie","description":"","color":"#2bb07f","start_date":"2026-08-24","end_date":"2027-06-25","team_id":1,"archived":0,"sort":0,
+       "nc_calendar":"https://cloud.example.org/remote.php/dav/calendars/marv/klasse-9a","nc_calendar_name":"Klasse 9a","lessons":"Di D"},
       {"id":4,"name":"Ohne Liste","color":"#1e66f5","archived":0,"nc_calendar":null,"nc_calendar_name":null},
-      {"id":5,"name":"Altlast","color":"#1e66f5","archived":1,"nc_calendar":"https://cloud.example.org/remote.php/dav/calendars/nutzer/alt/"}],
-     "groups":[{"id":1,"project_id":3,"name":"Versuche","sort":0,"collapsed":0},{"id":2,"project_id":3,"name":"Organisation","sort":1,"collapsed":0},{"id":3,"project_id":4,"name":"Andere","sort":0,"collapsed":0}],
+      {"id":5,"name":"Altlast","color":"#1e66f5","archived":1,"nc_calendar":"https://cloud.example.org/remote.php/dav/calendars/marv/alt/"}],
+     "groups":[{"id":1,"project_id":3,"name":"Experimente","sort":0,"collapsed":0},{"id":2,"project_id":3,"name":"Organisation","sort":1,"collapsed":0},{"id":3,"project_id":4,"name":"Andere","sort":0,"collapsed":0}],
      "tasks":[],"blocks":[],"nextcloud":{"url":null}}
     """
 
@@ -90,10 +90,10 @@ final class PlanwerkTests: XCTestCase {
         let links = try await Counting().linkedLists()
         XCTAssertEqual(links.count, 1, "archivierte und unverknüpfte Projekte entfallen")
         let l = links[0]
-        XCTAssertEqual(l.projectName, "Projekt Alpha")
-        XCTAssertEqual(l.listPath, "/remote.php/dav/calendars/nutzer/projekt-alpha/")
-        XCTAssertEqual(l.groups, ["Versuche", "Organisation"])
-        XCTAssertEqual(l.people, ["Anton", "Erika Beispiel"])
+        XCTAssertEqual(l.projectName, "9a Chemie")
+        XCTAssertEqual(l.listPath, "/remote.php/dav/calendars/marv/klasse-9a/")
+        XCTAssertEqual(l.groups, ["Experimente", "Organisation"])
+        XCTAssertEqual(l.people, ["Jona", "Mia Muster"])
     }
 
     func testClientSendsBearerToken() async throws {
@@ -132,8 +132,8 @@ final class PlanwerkTests: XCTestCase {
     func testMarksMatchingListsAsLinked() async throws {
         let store = try Store.inMemory()
         try store.applyRemoteLists([
-            RemoteList(href: "/remote.php/dav/calendars/nutzer/projekt-alpha/", name: "Projekt Alpha"),
-            RemoteList(href: "/remote.php/dav/calendars/nutzer/privat/", name: "Privat"),
+            RemoteList(href: "/remote.php/dav/calendars/marv/klasse-9a/", name: "Klasse 9a"),
+            RemoteList(href: "/remote.php/dav/calendars/marv/privat/", name: "Privat"),
         ])
         let cache = PlanwerkLinkCache(connector: Counting())
         try await cache.apply(to: store)
@@ -142,7 +142,7 @@ final class PlanwerkTests: XCTestCase {
 }
 
 final class ReminderPlannerTests: XCTestCase {
-    private let riyadh = TimeZone(identifier: "Asia/Riyadh")!
+    private let nairobi = TimeZone(identifier: "Africa/Nairobi")!
     private func rec(_ item: TodoItem, deleted: Bool = false) -> TaskRecord {
         TaskRecord(item: item, listHref: "/l/", href: nil, etag: nil, isDirty: false, isDeleted: deleted, ics: "", baseICS: nil)
     }
@@ -150,9 +150,9 @@ final class ReminderPlannerTests: XCTestCase {
     func testRelativeToAllDayDueUsesNineAM() throws {
         var t = todo("Abgabe") { $0.due = .day(2026, 11, 20) }
         t.reminders = [Reminder(trigger: .relative(-86_400, toEnd: true))]
-        let plan = ReminderPlanner.plan(records: [rec(t)], now: Date(timeIntervalSince1970: 1_790_000_000), timeZone: riyadh)
+        let plan = ReminderPlanner.plan(records: [rec(t)], now: Date(timeIntervalSince1970: 1_790_000_000), timeZone: nairobi)
         XCTAssertEqual(plan.count, 1)
-        var cal = Calendar(identifier: .gregorian); cal.timeZone = riyadh
+        var cal = Calendar(identifier: .gregorian); cal.timeZone = nairobi
         let c = cal.dateComponents([.year, .month, .day, .hour], from: plan[0].fireDate)
         XCTAssertEqual([c.year, c.month, c.day, c.hour], [2026, 11, 19, 9])
         XCTAssertEqual(plan[0].id, "/l/|abgabe|0")
@@ -166,7 +166,7 @@ final class ReminderPlannerTests: XCTestCase {
         let ok = todo("ok") { $0.reminders = [future, past, email] }
         let done = todo("fertig") { $0.isCompleted = true; $0.reminders = [future] }
         let gone = todo("weg") { $0.reminders = [future] }
-        let plan = ReminderPlanner.plan(records: [rec(ok), rec(done), rec(gone, deleted: true)], now: now, timeZone: riyadh)
+        let plan = ReminderPlanner.plan(records: [rec(ok), rec(done), rec(gone, deleted: true)], now: now, timeZone: nairobi)
         XCTAssertEqual(plan.map(\.uid), ["ok"])
         XCTAssertEqual(plan.count, 1)
     }
@@ -176,7 +176,7 @@ final class ReminderPlannerTests: XCTestCase {
         let items = (0..<100).map { i in
             rec(todo("t\(i)") { $0.reminders = [Reminder(trigger: .absolute(now.addingTimeInterval(Double(100 - i) * 60)))] })
         }
-        let plan = ReminderPlanner.plan(records: items, now: now, timeZone: riyadh)
+        let plan = ReminderPlanner.plan(records: items, now: now, timeZone: nairobi)
         XCTAssertEqual(plan.count, 64)
         XCTAssertEqual(plan.first?.uid, "t99")
         XCTAssertTrue(zip(plan, plan.dropFirst()).allSatisfy { $0.fireDate <= $1.fireDate })
@@ -184,7 +184,43 @@ final class ReminderPlannerTests: XCTestCase {
 
     func testRelativeToStartFallsBackToDue() {
         let t = todo("x") { $0.due = ICalDate(year: 2026, month: 11, day: 20, hour: 12, kind: .utc); $0.reminders = [Reminder(trigger: .relative(-900, toEnd: false))] }
-        let d = ReminderPlanner.fireDate(for: t.reminders[0], item: t, timeZone: riyadh)
+        let d = ReminderPlanner.fireDate(for: t.reminders[0], item: t, timeZone: nairobi)
         XCTAssertEqual(d, ICalDate(year: 2026, month: 11, day: 20, hour: 11, minute: 45, kind: .utc).date())
+    }
+}
+
+final class MSTodoTests: XCTestCase {
+    func testImportIsIdempotentAndMapsFields() async throws {
+        let t = MockTransport { req in
+            let u = req.url!.absoluteString
+            if u.hasSuffix("/me/todo/lists") { return (200, [:], #"{"value":[{"id":"L1=","displayName":"Schule"}]}"#) }
+            return (200, [:], #"""
+            {"value":[
+              {"id":"T1=","title":"Arbeiten korrigieren","status":"notStarted","importance":"high","body":{"content":"Notiz"},
+               "dueDateTime":{"dateTime":"2026-11-20T00:00:00.0000000","timeZone":"UTC"},
+               "isReminderOn":true,"reminderDateTime":{"dateTime":"2026-11-19T07:00:00.0000000","timeZone":"UTC"}},
+              {"id":"T2=","title":"Fertig","status":"completed","completedDateTime":{"dateTime":"2026-11-01T10:00:00.0000000","timeZone":"UTC"}}]}
+            """#)
+        }
+        let all = try await MSTodoClient(clientID: "x", transport: t).fetchAll(accessToken: "tok")
+        XCTAssertEqual(t.last.value(forHTTPHeaderField: "Authorization"), "Bearer tok")
+        let store = try Store.inMemory()
+        let r = try store.importMSTodo(all, homePath: "/dav/home/")
+        XCTAssertEqual(r.lists, 1); XCTAssertEqual(r.tasks, 2)
+        _ = try store.importMSTodo(all, homePath: "/dav/home/")
+        let href = try store.lists()[0].href
+        let recs = try store.tasks(inList: href)
+        XCTAssertEqual(recs.count, 2, "zweiter Import verdoppelt nichts")
+        let a = try XCTUnwrap(recs.first { $0.item.title == "Arbeiten korrigieren" }?.item)
+        XCTAssertEqual(a.priority, 1); XCTAssertEqual(a.due, ICalDate.day(2026, 11, 20))
+        XCTAssertEqual(a.notes, "Notiz"); XCTAssertEqual(a.reminders.count, 1)
+        XCTAssertTrue(try XCTUnwrap(recs.first { $0.item.title == "Fertig" }).item.isCompleted)
+    }
+
+    func testPendingDeviceLoginReturnsNil() async throws {
+        let t = MockTransport { _ in (400, [:], #"{"error":"authorization_pending","error_description":"x","error_codes":[70016],"trace_id":"t"}"#) }
+        let d = MSTodoClient.DeviceCode(userCode: "A", verificationURL: URL(string: "https://x")!, deviceCode: "d", interval: 5, expiresIn: 900)
+        let tokens = try await MSTodoClient(clientID: "x", transport: t).pollDeviceLogin(d)
+        XCTAssertNil(tokens)
     }
 }

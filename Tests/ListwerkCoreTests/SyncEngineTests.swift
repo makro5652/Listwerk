@@ -15,7 +15,7 @@ final class SyncEngineTests: XCTestCase {
         let r1 = try await env.sync()
         XCTAssertTrue(r1.isClean, "\(r1.errors)")
         XCTAssertEqual(r1.pulled, 2)
-        XCTAssertEqual(try env.store.lists().map(\.name), ["Arbeit"])
+        XCTAssertEqual(try env.store.lists().map(\.name), ["Schule"])
         XCTAssertEqual(try env.store.tasks(inList: env.list).map(\.item.title).sorted(), ["Eins", "Zwei"])
         XCTAssertTrue(try env.store.tasks(inList: env.list).allSatisfy { !$0.isDirty && $0.etag != nil && $0.href != nil })
 
@@ -270,10 +270,10 @@ final class SyncEngineTests: XCTestCase {
     func testRenameAndDeleteList() async throws {
         let env = try await Env.make(items: [todo("X")])
         try await env.sync()
-        try env.store.updateList(env.list, name: "Arbeit 2027")
+        try env.store.updateList(env.list, name: "Schule 2027")
         try await env.sync()
-        XCTAssertEqual(env.server.collections[env.list]?.name, "Arbeit 2027")
-        XCTAssertEqual(try env.store.list(env.list)?.name, "Arbeit 2027")
+        XCTAssertEqual(env.server.collections[env.list]?.name, "Schule 2027")
+        XCTAssertEqual(try env.store.list(env.list)?.name, "Schule 2027")
 
         try env.store.deleteList(env.list)
         XCTAssertEqual(try env.store.lists().count, 0)

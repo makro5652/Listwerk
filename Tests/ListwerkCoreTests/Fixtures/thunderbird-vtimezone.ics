@@ -32,7 +32,7 @@ BEGIN:VALARM
 ACTION:EMAIL
 SUMMARY:Erinnerung
 DESCRIPTION:Elternbrief
-ATTENDEE:mailto:nutzer@example.org
+ATTENDEE:mailto:marv@example.org
 TRIGGER:-P1D
 END:VALARM
 END:VTODO

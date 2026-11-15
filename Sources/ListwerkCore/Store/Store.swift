@@ -17,7 +17,7 @@ public struct Account: Equatable, Sendable {
 }
 
 public struct TaskList: Equatable, Identifiable, Sendable {
-    /// Serverpfad der Collection, z. B. `/remote.php/dav/calendars/nutzer/arbeit/`.
+    /// Serverpfad der Collection, z. B. `/remote.php/dav/calendars/marv/schule/`.
     public var href: String
     public var name: String
     public var color: String?

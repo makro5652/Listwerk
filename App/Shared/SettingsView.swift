@@ -6,6 +6,16 @@ struct SettingsView: View {
     @Environment(\.colorScheme) private var scheme
     @State private var token = ""
 
+    @State private var planwerkResult: String?
+    @State private var msClientID = ""
+    @State private var msResult: String?
+
+    private func save() {
+        model.planwerkToken = token
+        planwerkResult = "Prüfe …"
+        Task { planwerkResult = await model.refreshPlanwerk() }
+    }
+
     var body: some View {
         @Bindable var model = model
         Form {
@@ -28,11 +38,27 @@ struct SettingsView: View {
                 TextField("Adresse, z. B. https://planwerk.beispiel.de", text: $model.planwerkURL)
                     .autocorrectionDisabled()
                 SecureField("API-Token (pwk_…)", text: $token)
-                    .onSubmit { model.planwerkToken = token; Task { await model.refreshPlanwerk() } }
-                Button("Token speichern und prüfen") {
-                    model.planwerkToken = token
-                    Task { await model.refreshPlanwerk() }
+                    .onSubmit { save() }
+                Button("Token speichern und prüfen") { save() }
+                if let planwerkResult { Text(planwerkResult).font(.footnote).textSelection(.enabled) }
+            }
+            Section("Microsoft To Do (Import)") {
+                TextField("App-ID (Client-ID aus Azure)", text: $msClientID)
+                    .autocorrectionDisabled()
+                    .onChange(of: msClientID) { model.msClientID = msClientID }
+                if let c = model.msLogin {
+                    Text("Code \(c.userCode) auf \(c.verificationURL.absoluteString) eingeben und bestätigen.")
+                        .textSelection(.enabled)
+                    Link("Anmeldeseite öffnen", destination: c.verificationURL)
                 }
+                Button(model.msConnected ? "Jetzt importieren" : "Verbinden und importieren") {
+                    msResult = "Läuft …"
+                    Task { msResult = await model.importMSTodo() }
+                }
+                if model.msConnected { Button("Verbindung trennen", role: .destructive) { model.disconnectMSTodo() } }
+                if let msResult { Text(msResult).font(.footnote).textSelection(.enabled) }
+                Text("Einseitig: To Do → Listwerk. Änderungen in To Do überschreiben beim nächsten Import die Listwerk-Einträge.")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
             Section {
                 Text("Listwerk \(ListwerkCoreInfo.version)").font(.footnote)
@@ -40,7 +66,7 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(minWidth: 420, minHeight: 480)
-        .onAppear { token = model.planwerkToken }
+        .onAppear { token = model.planwerkToken; msClientID = model.msClientID }
     }
 }
 

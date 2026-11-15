@@ -26,7 +26,7 @@ final class FakeServer: CalDAVService, @unchecked Sendable {
     var movesSupported = true
     var failAuth = false
 
-    let home = "/remote.php/dav/calendars/nutzer/"
+    let home = "/remote.php/dav/calendars/marv/"
     var clock = Date(timeIntervalSince1970: 1_794_398_400)
 
     func count(_ prefix: String) -> Int { lock.lock(); defer { lock.unlock() }; return calls.filter { $0.hasPrefix(prefix) }.count }
@@ -106,7 +106,7 @@ final class FakeServer: CalDAVService, @unchecked Sendable {
     func discover() async throws -> (principal: String, home: String) {
         lock.lock(); defer { lock.unlock() }
         try log("discover")
-        return ("/remote.php/dav/principals/users/nutzer/", home)
+        return ("/remote.php/dav/principals/users/marv/", home)
     }
 
     func listCollections(home: String) async throws -> [RemoteList] {
@@ -229,10 +229,10 @@ struct Env {
     static func make(items: [TodoItem] = []) async throws -> Env {
         let store = try Store.inMemory()
         let server = FakeServer()
-        let list = server.addCollection("Arbeit", color: "#1e66f5")
+        let list = server.addCollection("Schule", color: "#1e66f5")
         for i in items { server.seed(list, i) }
-        try store.saveAccount(Account(serverURL: URL(string: "https://cloud.example.org")!, loginName: "nutzer",
-                                      principalPath: "/remote.php/dav/principals/users/nutzer/", homePath: server.home))
+        try store.saveAccount(Account(serverURL: URL(string: "https://cloud.example.org")!, loginName: "marv",
+                                      principalPath: "/remote.php/dav/principals/users/marv/", homePath: server.home))
         let engine = SyncEngine(store: store, service: server, now: { Date(timeIntervalSince1970: 1_794_398_400 + 600) })
         return Env(store: store, server: server, engine: engine, list: list)
     }

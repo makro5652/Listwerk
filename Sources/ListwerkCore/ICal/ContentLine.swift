@@ -1,6 +1,6 @@
 import Foundation
 
-/// Parameter einer iCalendar-Zeile, z. B. `TZID=Asia/Riyadh`. Der Wert bleibt roh (mit Anführungszeichen),
+/// Parameter einer iCalendar-Zeile, z. B. `TZID=Africa/Nairobi`. Der Wert bleibt roh (mit Anführungszeichen),
 /// damit das Zurückschreiben verlustfrei ist.
 public struct ICalParam: Equatable, Hashable, Sendable {
     public var name: String

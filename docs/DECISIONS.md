@@ -10,8 +10,8 @@
 5. **Merge:** feldweise Dreiwege-Zusammenführung; bei echtem Konflikt gewinnt das neuere `LAST-MODIFIED`,
    bei Gleichstand lokal. Konflikte stehen in `conflict_log`. Lokal geändert + Server gelöscht: neu anlegen.
    Lokal gelöscht + Server geändert: Server gewinnt.
-6. **Planwerk:** nur `GET /api/state`, `GET /api/rev`, `POST /api/nextcloud/sync` mit Bearer-Token. Feldnamen als optionale Schnittstelle (frei konfigurierbar, Adresse und Token nur in den Einstellungen).
-   In verknüpften Listen keine freien Schlagwörter; Datum nur als Tag.
+6. **Planwerk:** nur `GET /api/state`, `GET /api/rev`, `POST /api/nextcloud/sync` mit Bearer-Token. Feldnamen aus dem
+   Quelltext des Repos übernommen. In verknüpften Listen keine freien Schlagwörter; Datum nur als Tag.
 7. **Themes:** Catppuccin-Werte aus der offiziellen `palette.json`. Latte nutzt für „Fläche“ die Farbe `crust`
    statt `surface0`, weil Nebentext sonst WCAG AA (4,5:1) verfehlt (4,05:1).
 8. **Erinnerungen:** Fälligkeit ohne Uhrzeit → Bezugspunkt 09:00 Ortszeit; höchstens 64 geplante Mitteilungen (iOS-Limit).

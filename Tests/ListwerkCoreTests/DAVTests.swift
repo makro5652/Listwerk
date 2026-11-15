@@ -31,7 +31,7 @@ private func ok(_ body: String, status: Int = 207, headers: [String: String] = [
 final class DAVTests: XCTestCase {
     private let server = URL(string: "https://cloud.example.org")!
     private func client(_ t: MockTransport, base: URL? = nil) -> CalDAVClient {
-        CalDAVClient(serverURL: base ?? server, loginName: "nutzer", appPassword: "geheim-app-pw", transport: t)
+        CalDAVClient(serverURL: base ?? server, loginName: "marv", appPassword: "geheim-app-pw", transport: t)
     }
 
     // Nachgebaut nach dem Antwortformat von Nextcloud (sabre/dav); gegen eine echte Instanz noch nicht geprüft.
@@ -39,40 +39,40 @@ final class DAVTests: XCTestCase {
     <?xml version="1.0"?>
     <d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav"
       xmlns:cs="http://calendarserver.org/ns/" xmlns:oc="http://owncloud.org/ns" xmlns:x1="http://apple.com/ns/ical/">
-     <d:response><d:href>/remote.php/dav/calendars/nutzer/</d:href>
+     <d:response><d:href>/remote.php/dav/calendars/marv/</d:href>
       <d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
-     <d:response><d:href>/remote.php/dav/calendars/nutzer/arbeit/</d:href>
+     <d:response><d:href>/remote.php/dav/calendars/marv/schule/</d:href>
       <d:propstat><d:prop>
-        <d:resourcetype><d:collection/><cal:calendar/></d:resourcetype><d:displayname>Arbeit</d:displayname>
+        <d:resourcetype><d:collection/><cal:calendar/></d:resourcetype><d:displayname>Schule</d:displayname>
         <x1:calendar-color>#1E66F5FF</x1:calendar-color><x1:calendar-order>3</x1:calendar-order>
         <cs:getctag>http://sabre.io/ns/sync/42</cs:getctag><d:sync-token>http://sabre.io/ns/sync/42</d:sync-token>
         <cal:supported-calendar-component-set><cal:comp name="VTODO"/></cal:supported-calendar-component-set>
         <d:current-user-privilege-set><d:privilege><d:all/></d:privilege></d:current-user-privilege-set>
-        <d:owner><d:href>/remote.php/dav/principals/users/nutzer/</d:href></d:owner>
+        <d:owner><d:href>/remote.php/dav/principals/users/marv/</d:href></d:owner>
       </d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
-     <d:response><d:href>/remote.php/dav/calendars/nutzer/persoenlich/</d:href>
+     <d:response><d:href>/remote.php/dav/calendars/marv/persoenlich/</d:href>
       <d:propstat><d:prop>
         <d:resourcetype><d:collection/><cal:calendar/></d:resourcetype><d:displayname>Termine</d:displayname>
         <cal:supported-calendar-component-set><cal:comp name="VEVENT"/></cal:supported-calendar-component-set>
       </d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
-     <d:response><d:href>/remote.php/dav/calendars/nutzer/team%20a_shared_by_anna/</d:href>
+     <d:response><d:href>/remote.php/dav/calendars/marv/team%20a_shared_by_lena/</d:href>
       <d:propstat><d:prop>
         <d:resourcetype><d:collection/><cal:calendar/></d:resourcetype><d:displayname>Team A</d:displayname>
         <cal:supported-calendar-component-set><cal:comp name="VTODO"/><cal:comp name="VEVENT"/></cal:supported-calendar-component-set>
         <d:current-user-privilege-set><d:privilege><d:read/></d:privilege></d:current-user-privilege-set>
-        <d:owner><d:href>/remote.php/dav/principals/users/anna/</d:href></d:owner>
+        <d:owner><d:href>/remote.php/dav/principals/users/lena/</d:href></d:owner>
       </d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
-     <d:response><d:href>/remote.php/dav/calendars/nutzer/trashbin/</d:href>
+     <d:response><d:href>/remote.php/dav/calendars/marv/trashbin/</d:href>
       <d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
     </d:multistatus>
     """
 
     func testListCollectionsFiltersAndReadsProperties() async throws {
         let t = MockTransport { _ in ok(self.collectionsXML) }
-        let lists = try await client(t).listCollections(home: "/remote.php/dav/calendars/nutzer/")
-        XCTAssertEqual(lists.map(\.name), ["Arbeit", "Team A"], "nur Listen mit VTODO")
+        let lists = try await client(t).listCollections(home: "/remote.php/dav/calendars/marv/")
+        XCTAssertEqual(lists.map(\.name), ["Schule", "Team A"], "nur Listen mit VTODO")
         let s = lists[0]
-        XCTAssertEqual(s.href, "/remote.php/dav/calendars/nutzer/arbeit/")
+        XCTAssertEqual(s.href, "/remote.php/dav/calendars/marv/schule/")
         XCTAssertEqual(s.color, "#1e66f5")
         XCTAssertEqual(s.order, 3)
         XCTAssertEqual(s.syncToken, "http://sabre.io/ns/sync/42")
@@ -80,15 +80,15 @@ final class DAVTests: XCTestCase {
         XCTAssertFalse(s.isShared)
         XCTAssertFalse(lists[1].canWrite, "nur lesen")
         XCTAssertTrue(lists[1].isShared)
-        XCTAssertEqual(lists[1].ownerName, "anna")
+        XCTAssertEqual(lists[1].ownerName, "lena")
         XCTAssertEqual(t.last.httpMethod, "PROPFIND")
         XCTAssertEqual(t.last.value(forHTTPHeaderField: "Depth"), "1")
     }
 
     func testAuthHeaderAndUserAgent() async throws {
         let t = MockTransport { _ in ok(self.collectionsXML) }
-        _ = try await client(t).listCollections(home: "/remote.php/dav/calendars/nutzer/")
-        let expected = "Basic " + Data("nutzer:geheim-app-pw".utf8).base64EncodedString()
+        _ = try await client(t).listCollections(home: "/remote.php/dav/calendars/marv/")
+        let expected = "Basic " + Data("marv:geheim-app-pw".utf8).base64EncodedString()
         XCTAssertEqual(t.last.value(forHTTPHeaderField: "Authorization"), expected)
         XCTAssertTrue(t.last.value(forHTTPHeaderField: "User-Agent")!.hasPrefix("Listwerk/"))
     }
@@ -96,13 +96,13 @@ final class DAVTests: XCTestCase {
     func testDiscover() async throws {
         let t = MockTransport { req in
             if req.url!.absoluteString.hasSuffix("/remote.php/dav/") {
-                return ok("<d:multistatus xmlns:d=\"DAV:\"><d:response><d:href>/remote.php/dav/</d:href><d:propstat><d:prop><d:current-user-principal><d:href>/remote.php/dav/principals/users/nutzer/</d:href></d:current-user-principal></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>")
+                return ok("<d:multistatus xmlns:d=\"DAV:\"><d:response><d:href>/remote.php/dav/</d:href><d:propstat><d:prop><d:current-user-principal><d:href>/remote.php/dav/principals/users/marv/</d:href></d:current-user-principal></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>")
             }
-            return ok("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:response><d:href>/remote.php/dav/principals/users/nutzer/</d:href><d:propstat><d:prop><c:calendar-home-set><d:href>https://cloud.example.org/remote.php/dav/calendars/nutzer/</d:href></c:calendar-home-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>")
+            return ok("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:response><d:href>/remote.php/dav/principals/users/marv/</d:href><d:propstat><d:prop><c:calendar-home-set><d:href>https://cloud.example.org/remote.php/dav/calendars/marv/</d:href></c:calendar-home-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>")
         }
         let r = try await client(t).discover()
-        XCTAssertEqual(r.principal, "/remote.php/dav/principals/users/nutzer/")
-        XCTAssertEqual(r.home, "/remote.php/dav/calendars/nutzer/", "absolute URL wird auf den Pfad gekürzt")
+        XCTAssertEqual(r.principal, "/remote.php/dav/principals/users/marv/")
+        XCTAssertEqual(r.home, "/remote.php/dav/calendars/marv/", "absolute URL wird auf den Pfad gekürzt")
     }
 
     func testSubdirectoryInstallation() async throws {
@@ -114,14 +114,14 @@ final class DAVTests: XCTestCase {
     func testSyncCollectionParsesChangedAndRemoved() async throws {
         let xml = """
         <?xml version="1.0"?><d:multistatus xmlns:d="DAV:">
-        <d:response><d:href>/remote.php/dav/calendars/nutzer/arbeit/a.ics</d:href><d:propstat><d:prop><d:getetag>"aaa"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
-        <d:response><d:href>/remote.php/dav/calendars/nutzer/arbeit/b.ics</d:href><d:status>HTTP/1.1 404 Not Found</d:status></d:response>
+        <d:response><d:href>/remote.php/dav/calendars/marv/schule/a.ics</d:href><d:propstat><d:prop><d:getetag>"aaa"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
+        <d:response><d:href>/remote.php/dav/calendars/marv/schule/b.ics</d:href><d:status>HTTP/1.1 404 Not Found</d:status></d:response>
         <d:sync-token>http://sabre.io/ns/sync/43</d:sync-token></d:multistatus>
         """
         let t = MockTransport { _ in ok(xml) }
-        let ch = try await client(t).changes(list: "/remote.php/dav/calendars/nutzer/arbeit/", since: "http://sabre.io/ns/sync/42")
-        XCTAssertEqual(ch.changed, [RemoteEntry(href: "/remote.php/dav/calendars/nutzer/arbeit/a.ics", etag: "\"aaa\"")])
-        XCTAssertEqual(ch.removed, ["/remote.php/dav/calendars/nutzer/arbeit/b.ics"])
+        let ch = try await client(t).changes(list: "/remote.php/dav/calendars/marv/schule/", since: "http://sabre.io/ns/sync/42")
+        XCTAssertEqual(ch.changed, [RemoteEntry(href: "/remote.php/dav/calendars/marv/schule/a.ics", etag: "\"aaa\"")])
+        XCTAssertEqual(ch.removed, ["/remote.php/dav/calendars/marv/schule/b.ics"])
         XCTAssertEqual(ch.newToken, "http://sabre.io/ns/sync/43")
         XCTAssertTrue(t.body().contains("<d:sync-token>http://sabre.io/ns/sync/42</d:sync-token>"))
         XCTAssertEqual(t.last.httpMethod, "REPORT")
@@ -136,7 +136,7 @@ final class DAVTests: XCTestCase {
     func testFetchParsesCalendarDataWithEntities() async throws {
         let xml = """
         <?xml version="1.0"?><d:multistatus xmlns:d="DAV:" xmlns:cal="urn:ietf:params:xml:ns:caldav">
-        <d:response><d:href>/remote.php/dav/calendars/nutzer/arbeit/a.ics</d:href><d:propstat><d:prop><d:getetag>"e1"</d:getetag>
+        <d:response><d:href>/remote.php/dav/calendars/marv/schule/a.ics</d:href><d:propstat><d:prop><d:getetag>"e1"</d:getetag>
         <cal:calendar-data>BEGIN:VCALENDAR&#13;
         VERSION:2.0&#13;
         BEGIN:VTODO&#13;
@@ -147,13 +147,13 @@ final class DAVTests: XCTestCase {
         </cal:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>
         """
         let t = MockTransport { _ in ok(xml) }
-        let res = try await client(t).fetch(list: "/remote.php/dav/calendars/nutzer/arbeit/", hrefs: ["/remote.php/dav/calendars/nutzer/arbeit/a.ics"])
+        let res = try await client(t).fetch(list: "/remote.php/dav/calendars/marv/schule/", hrefs: ["/remote.php/dav/calendars/marv/schule/a.ics"])
         XCTAssertEqual(res.count, 1)
         XCTAssertEqual(res[0].etag, "\"e1\"")
         let item = try XCTUnwrap(ICalDocument(parsing: res[0].ics)).makeItem()
         XCTAssertEqual(item.uid, "a")
         XCTAssertEqual(item.title, "Fragen & Antworten")
-        XCTAssertTrue(t.body().contains("<d:href>/remote.php/dav/calendars/nutzer/arbeit/a.ics</d:href>"))
+        XCTAssertTrue(t.body().contains("<d:href>/remote.php/dav/calendars/marv/schule/a.ics</d:href>"))
     }
 
     func testFetchBatchesRequests() async throws {
@@ -210,7 +210,7 @@ final class DAVTests: XCTestCase {
 
     func testMakeAndUpdateCollectionEscapeNames() async throws {
         let t = MockTransport { _ in (201, [:], "") }
-        try await client(t).makeCollection(href: "/remote.php/dav/calendars/nutzer/x/", name: "Eltern & <Kinder>", color: "#ff0000")
+        try await client(t).makeCollection(href: "/remote.php/dav/calendars/marv/x/", name: "Eltern & <Kinder>", color: "#ff0000")
         XCTAssertEqual(t.last.httpMethod, "MKCALENDAR")
         XCTAssertTrue(t.body().contains("Eltern &amp; &lt;Kinder&gt;"))
         XCTAssertTrue(t.body().contains("<c:comp name=\"VTODO\"/>"))
@@ -226,14 +226,14 @@ final class DAVTests: XCTestCase {
             }
             polls += 1
             if polls < 3 { return (404, [:], "") }
-            return (200, [:], #"{"server":"https://cloud.example.org","loginName":"nutzer","appPassword":"app-pw-xyz"}"#)
+            return (200, [:], #"{"server":"https://cloud.example.org","loginName":"marv","appPassword":"app-pw-xyz"}"#)
         }
         let flow = LoginFlowV2(transport: t)
         let session = try await flow.start(server: URL(string: "https://cloud.example.org/")!)
         XCTAssertEqual(session.loginURL.absoluteString, "https://cloud.example.org/index.php/login/v2/flow/abc")
         XCTAssertEqual(t.requests[0].url?.absoluteString, "https://cloud.example.org/index.php/login/v2")
         let creds = try await flow.waitForCredentials(session, interval: 0.01, timeout: 5)
-        XCTAssertEqual(creds, NextcloudCredentials(serverURL: URL(string: "https://cloud.example.org")!, loginName: "nutzer", appPassword: "app-pw-xyz"))
+        XCTAssertEqual(creds, NextcloudCredentials(serverURL: URL(string: "https://cloud.example.org")!, loginName: "marv", appPassword: "app-pw-xyz"))
         XCTAssertEqual(polls, 3)
         XCTAssertEqual(t.body(), "token=tok123")
     }

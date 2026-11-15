@@ -4,8 +4,8 @@ import XCTest
 final class StoreTests: XCTestCase {
     private func makeStore() throws -> (Store, String) {
         let store = try Store.inMemory()
-        let list = "/remote.php/dav/calendars/nutzer/arbeit/"
-        try store.applyRemoteLists([RemoteList(href: list, name: "Arbeit")])
+        let list = "/remote.php/dav/calendars/marv/schule/"
+        try store.applyRemoteLists([RemoteList(href: list, name: "Schule")])
         return (store, list)
     }
 
@@ -84,8 +84,8 @@ final class StoreTests: XCTestCase {
 
     func testMoveCarriesSubtasksAndTracksOriginalLocation() throws {
         let (store, a) = try makeStore()
-        let b = "/remote.php/dav/calendars/nutzer/privat/"
-        try store.applyRemoteLists([RemoteList(href: a, name: "Arbeit"), RemoteList(href: b, name: "Privat")])
+        let b = "/remote.php/dav/calendars/marv/privat/"
+        try store.applyRemoteLists([RemoteList(href: a, name: "Schule"), RemoteList(href: b, name: "Privat")])
         for (uid, parent) in [("p", nil), ("k", "p")] as [(String, String?)] {
             let r = try store.save(todo(uid) { $0.parentUID = parent }, inList: a, now: testNow)
             try store.markSynced(uid: uid, listHref: a, href: a + uid + ".ics", etag: "\"1\"", ics: r.ics)
@@ -108,17 +108,17 @@ final class StoreTests: XCTestCase {
             let s = try Store(path: path)
             try s.applyRemoteLists([RemoteList(href: "/l/", name: "L")])
             try s.save(todo("bleibt"), inList: "/l/", now: testNow)
-            try s.saveAccount(Account(serverURL: URL(string: "https://x.example")!, loginName: "nutzer"))
+            try s.saveAccount(Account(serverURL: URL(string: "https://x.example")!, loginName: "marv"))
         }
         let s2 = try Store(path: path)
         XCTAssertEqual(try s2.tasks(inList: "/l/").map(\.item.title), ["bleibt"])
-        XCTAssertEqual(try s2.account()?.loginName, "nutzer")
+        XCTAssertEqual(try s2.account()?.loginName, "marv")
     }
 
     func testWipeRemovesEverything() throws {
         let (store, list) = try makeStore()
         try store.save(todo("a"), inList: list, now: testNow)
-        try store.saveAccount(Account(serverURL: URL(string: "https://x.example")!, loginName: "nutzer"))
+        try store.saveAccount(Account(serverURL: URL(string: "https://x.example")!, loginName: "marv"))
         try store.wipe()
         XCTAssertEqual(try store.lists().count, 0)
         XCTAssertNil(try store.account())

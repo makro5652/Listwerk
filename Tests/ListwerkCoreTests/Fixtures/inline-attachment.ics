@@ -4,7 +4,7 @@ PRODID:-//Test//DE
 BEGIN:VTODO
 UID:att-0001
 SUMMARY:Mit Anhängen
-ATTACH;FMTTYPE=application/pdf;FILENAME=Anhang.pdf:https://cloud.example.org/remote.php/dav/files/nutzer/Listwerk/att-0001/Anhang.pdf
+ATTACH;FMTTYPE=application/pdf;FILENAME=Arbeitsblatt.pdf:https://cloud.example.org/remote.php/dav/files/marv/Listwerk/att-0001/Arbeitsblatt.pdf
 ATTACH;ENCODING=BASE64;VALUE=BINARY;FMTTYPE=text/plain:SGFsbG8gV2VsdA==
 END:VTODO
 END:VCALENDAR

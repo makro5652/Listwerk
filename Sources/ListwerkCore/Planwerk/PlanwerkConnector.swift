@@ -9,7 +9,7 @@ public struct PlanwerkProject: Decodable, Equatable, Sendable {
     public let name: String
     public let color: String?
     public let archived: Bool?
-    /// Volle URL der verknüpften Nextcloud-Aufgabenliste, z. B. `https://cloud.example.org/remote.php/dav/calendars/nutzer/projekt-alpha/`.
+    /// Volle URL der verknüpften Nextcloud-Aufgabenliste, z. B. `https://cloud.example.org/remote.php/dav/calendars/marv/klasse-9a/`.
     public let ncCalendar: String?
     public let ncCalendarName: String?
 

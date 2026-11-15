@@ -51,14 +51,14 @@ final class ICalCodecTests: XCTestCase {
         let doc = try XCTUnwrap(ICalDocument(parsing: try Fixture.text("nextcloud-tasks")))
         let t = doc.makeItem()
         XCTAssertEqual(t.uid, "5f3c8b1e-0a4d-4f4e-9d61-1c2b3a4d5e6f")
-        XCTAssertEqual(t.title, "Bericht prüfen")
+        XCTAssertEqual(t.title, "Klassenarbeit korrigieren")
         XCTAssertEqual(t.notes, "Teil A zuerst, dann Teil B.\nNotenspiegel nicht vergessen.")
         XCTAssertEqual(t.priority, 1)
-        XCTAssertEqual(t.tags, ["Arbeit", "Labor"])
+        XCTAssertEqual(t.tags, ["Schule", "Chemie"])
         XCTAssertEqual(t.parentUID, "aa11bb22-cc33-dd44-ee55-ff6677889900")
         XCTAssertEqual(t.sortOrder, 12)
         XCTAssertFalse(t.isCompleted)
-        XCTAssertEqual(t.due, ICalDate(year: 2026, month: 11, day: 20, hour: 15, kind: .zoned("Asia/Riyadh")))
+        XCTAssertEqual(t.due, ICalDate(year: 2026, month: 11, day: 20, hour: 15, kind: .zoned("Africa/Nairobi")))
         XCTAssertEqual(t.reminders.count, 1)
         XCTAssertEqual(t.reminders[0].trigger, .relative(-3600, toEnd: true))
         XCTAssertNil(t.planwerk)
@@ -85,7 +85,7 @@ final class ICalCodecTests: XCTestCase {
         let out = doc.serialized()
         XCTAssertTrue(out.contains("BEGIN:VTIMEZONE"))
         XCTAssertTrue(out.contains("TZID:Europe/Berlin"))
-        XCTAssertTrue(out.contains("ATTENDEE:mailto:nutzer@example.org"))
+        XCTAssertTrue(out.contains("ATTENDEE:mailto:marv@example.org"))
         XCTAssertTrue(out.contains("X-MOZ-GENERATION:3"))
         XCTAssertTrue(out.contains("SUMMARY:Elternbrief fertigstellen"))
         XCTAssertTrue(out.contains("DTSTART;TZID=Europe/Berlin:20261112T080000"))
@@ -93,7 +93,7 @@ final class ICalCodecTests: XCTestCase {
 
     func testPlanwerkMetaAndDerivedTags() throws {
         let t = try XCTUnwrap(ICalDocument(parsing: try Fixture.text("planwerk-linked"))).makeItem()
-        XCTAssertEqual(t.planwerk, PlanwerkMeta(kind: .experiment, group: "Versuche", assignee: "Erika Beispiel"))
+        XCTAssertEqual(t.planwerk, PlanwerkMeta(kind: .experiment, group: "Experimente", assignee: "Mia Muster"))
         XCTAssertEqual(t.tags, [], "Gruppe, Art und @Person sind keine freien Schlagwörter")
         XCTAssertEqual(t.percentComplete, 40)
         XCTAssertEqual(t.start, .day(2026, 11, 16))
@@ -104,14 +104,14 @@ final class ICalCodecTests: XCTestCase {
         var doc = try XCTUnwrap(ICalDocument(parsing: try Fixture.text("inline-attachment")))
         var t = doc.makeItem()
         XCTAssertEqual(t.attachments.count, 2)
-        XCTAssertEqual(t.attachments[0].filename, "Anhang.pdf")
+        XCTAssertEqual(t.attachments[0].filename, "Arbeitsblatt.pdf")
         XCTAssertEqual(t.attachments[0].mimeType, "application/pdf")
         XCTAssertFalse(t.attachments[0].isInline)
         XCTAssertTrue(t.attachments[1].isInline)
         t.attachments.remove(at: 0)
         doc.apply(t, now: testNow)
         XCTAssertTrue(doc.serialized().contains("ENCODING=BASE64"), "eingebetteter Anhang bleibt erhalten")
-        XCTAssertFalse(doc.serialized().contains("Anhang.pdf"))
+        XCTAssertFalse(doc.serialized().contains("Arbeitsblatt.pdf"))
     }
 
     // MARK: Schreiben
@@ -120,18 +120,18 @@ final class ICalCodecTests: XCTestCase {
         let text = try Fixture.text("nextcloud-tasks")
         var doc = try XCTUnwrap(ICalDocument(parsing: text))
         var t = doc.makeItem()
-        t.title = "Bericht Nr. 3 prüfen"
+        t.title = "Klassenarbeit Nr. 3 korrigieren"
         doc.apply(t, now: testNow)
         let out = try XCTUnwrap(ICalDocument(parsing: doc.serialized()))
         let t2 = out.makeItem()
-        XCTAssertEqual(t2.title, "Bericht Nr. 3 prüfen")
+        XCTAssertEqual(t2.title, "Klassenarbeit Nr. 3 korrigieren")
         XCTAssertEqual(t2.notes, t.notes)
         XCTAssertEqual(t2.due, t.due)
         XCTAssertEqual(out.text("LAST-MODIFIED"), "20261111T120000Z")
         XCTAssertEqual(out.text("DTSTAMP"), "20261111T120000Z")
         XCTAssertEqual(out.text("SEQUENCE"), "0", "ohne vorherige SEQUENCE beginnt die Zählung bei 0")
         XCTAssertEqual(out.text("X-OC-HIDESUBTASKS"), "0")
-        XCTAssertEqual(out.prop("DUE")?.params.first?.value, "Asia/Riyadh")
+        XCTAssertEqual(out.prop("DUE")?.params.first?.value, "Africa/Nairobi")
 
         var again = out
         var t3 = again.makeItem()
@@ -221,13 +221,13 @@ final class ICalCodecTests: XCTestCase {
     func testPlanwerkCategoriesAreWrittenConsistently() throws {
         var doc = try XCTUnwrap(ICalDocument(parsing: try Fixture.text("planwerk-linked")))
         var t = doc.makeItem()
-        t.planwerk = PlanwerkMeta(kind: .milestone, group: "Abnahmen", assignee: "Anton")
+        t.planwerk = PlanwerkMeta(kind: .milestone, group: "Leistungsnachweise", assignee: "Jona")
         t.tags = ["wird-ignoriert"]
         doc.apply(t, now: testNow)
         XCTAssertEqual(doc.text("X-PLANWERK-KIND"), "milestone")
-        XCTAssertEqual(doc.text("X-PLANWERK-GROUP"), "Abnahmen")
-        XCTAssertEqual(doc.text("X-PLANWERK-ASSIGNEE"), "Anton")
-        XCTAssertEqual(doc.prop("CATEGORIES")?.value, "Abnahmen,Meilenstein,@Anton")
+        XCTAssertEqual(doc.text("X-PLANWERK-GROUP"), "Leistungsnachweise")
+        XCTAssertEqual(doc.text("X-PLANWERK-ASSIGNEE"), "Jona")
+        XCTAssertEqual(doc.prop("CATEGORIES")?.value, "Leistungsnachweise,Meilenstein,@Jona")
     }
 
     func testParentRelationKeepsOtherRelations() throws {
@@ -291,9 +291,9 @@ final class ICalCodecTests: XCTestCase {
         XCTAssertEqual(ICalDate(value: "20261120T140000", params: [])?.kind, .floating)
         XCTAssertEqual(ICalDate(value: "20261120T140000", params: [ICalParam(name: "TZID", value: "Europe/Berlin")])?.kind, .zoned("Europe/Berlin"))
         XCTAssertNil(ICalDate(value: "kaputt", params: []))
-        let riyadh = ICalDate(year: 2026, month: 11, day: 20, hour: 15, kind: .zoned("Asia/Riyadh"))
-        XCTAssertEqual(riyadh.date().timeIntervalSince1970, ICalDate(year: 2026, month: 11, day: 20, hour: 12, kind: .utc).date().timeIntervalSince1970)
-        XCTAssertLessThan(ICalDate.day(2026, 11, 20).sortKey, riyadh.sortKey)
+        let nairobi = ICalDate(year: 2026, month: 11, day: 20, hour: 15, kind: .zoned("Africa/Nairobi"))
+        XCTAssertEqual(nairobi.date().timeIntervalSince1970, ICalDate(year: 2026, month: 11, day: 20, hour: 12, kind: .utc).date().timeIntervalSince1970)
+        XCTAssertLessThan(ICalDate.day(2026, 11, 20).sortKey, nairobi.sortKey)
         XCTAssertLessThan(ICalDate.day(2026, 11, 19).sortKey, ICalDate.day(2026, 11, 20).sortKey)
     }
 
