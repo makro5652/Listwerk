@@ -9,6 +9,18 @@ Kotlin, Jetpack Compose (Material 3), Room, OkHttp, WorkManager, Glance. `minSdk
 - `app/` – Android-Anwendung: Room-Backend (`RoomBackend`), Keystore-Geheimnisspeicher, OkHttp-Transport, WorkManager-Abgleich, AlarmManager-Erinnerungen, Compose-Oberfläche, Glance-Widget, `QuickAddActivity`, Shortcut, Schnelleinstellungs-Kachel.
 - Themes und Farbpaletten werden beim Bauen aus `../shared` in die APK kopiert, die Testfixtures aus `../shared/fixtures` gelesen.
 
+## Ohne Konto, Darstellung „Wie Microsoft To Do“
+
+- Beim ersten Start: „Ohne Anmeldung nutzen“. Listen liegen dann unter `local:/…` nur auf dem Gerät. Meldet man sich später
+  an (Einstellungen → „Mit Nextcloud anmelden“), übernimmt `Store.adoptLocalLists` sie ins Konto; der nächste Abgleich
+  legt die Listen per `MKCALENDAR` an und lädt alle Einträge hoch. Getestet in `SyncEngineTest` und `StoreContractTest`.
+- Einstellungen → Darstellung: „Listwerk“ oder „Wie Microsoft To Do“ (Startseite mit Listen, farbige Listenansicht,
+  Karten mit Stern, Abschnitt „Erledigt“, „+ Aufgabe hinzufügen“).
+- In beiden Darstellungen: intelligente Listen „Mein Tag“, „Wichtig“, „Geplant“, „Aufgaben“ (alle), „Erledigt“;
+  Suche; Sortieren (eigene Reihenfolge, Wichtigkeit, Fälligkeit, alphabetisch, Erstellung); Stern = hohe Priorität;
+  Wiederholen (täglich, werktags, wöchentlich, monatlich, jährlich): Erledigen legt den nächsten Termin als neuen Eintrag an.
+- „Mein Tag“ wird nur auf dem Gerät gemerkt und beginnt jeden Tag leer (Fälliges und Überfälliges erscheint automatisch).
+
 ## Bauen und prüfen
 
 ```

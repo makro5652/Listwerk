@@ -95,6 +95,25 @@ class Store(private val backend: StoreBackend, private val zone: () -> ZoneId = 
         list(href)!!
     }
 
+    /**
+     * Übernimmt die ohne Konto angelegten Listen ([LOCAL_HOME]) in das Konto unter [homePath]: neue Href, `MKCALENDAR`
+     * und Hochladen der Einträge folgen beim nächsten Abgleich. Gibt alte → neue Href zurück (für gemerkte Auswahlen).
+     */
+    fun adoptLocalLists(homePath: String): Map<String, String> = write {
+        val moved = LinkedHashMap<String, String>()
+        for (row in backend.allLists().filter { it.href.startsWith(LOCAL_HOME) }) {
+            val slug = row.href.removePrefix(LOCAL_HOME).trimEnd('/')
+            var href = "$homePath$slug/"
+            var n = 2
+            while (backend.getList(href) != null) { href = "$homePath$slug-$n/"; n++ }
+            backend.putList(row.copy(href = href, pendingCreate = true, pendingDelete = false, pendingProps = false))
+            for (t in backend.tasksInList(row.href)) backend.moveTask(row.href, href, t.uid)
+            backend.deleteList(row.href)
+            moved[row.href] = href
+        }
+        moved
+    }
+
     fun renameList(href: String, name: String) = write {
         list(href)?.let { backend.putList(it.copy(name = name, pendingProps = true).toRow()) }
         Unit
@@ -377,6 +396,9 @@ class Store(private val backend: StoreBackend, private val zone: () -> ZoneId = 
     fun rawTaskRowCount(): Int = backend.allTasks().size
 
     companion object {
+        /** Pseudo-Heimatpfad für Listen ohne Konto; wird beim Anmelden durch den echten ersetzt ([adoptLocalLists]). */
+        const val LOCAL_HOME = "local:/"
+
         fun slug(name: String): String {
             val folded = Normalizer.normalize(name.lowercase(), Normalizer.Form.NFD)
                 .replace(Regex("\\p{Mn}+"), "")

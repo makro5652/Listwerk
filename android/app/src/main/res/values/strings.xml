@@ -39,7 +39,7 @@
     <string name="show_completed">Erledigte anzeigen</string>
     <string name="hide_completed">Erledigte ausblenden</string>
     <string name="empty_list">Nichts zu tun.</string>
-    <string name="empty_no_lists">Noch keine Listen. Lege über das Menü links eine an.</string>
+    <string name="empty_no_lists">Noch keine Listen. Lege über das Menü eine an.</string>
     <string name="read_only">schreibgeschützt</string>
     <string name="read_only_list">Diese Liste ist schreibgeschützt.</string>
     <string name="shared">geteilt</string>
@@ -147,4 +147,37 @@
     <string name="widget_add">Neuer Eintrag</string>
     <string name="widget_empty">Nichts zu tun.</string>
     <string name="widget_choose_list">Liste für das Widget wählen</string>
+
+    <!-- Ohne Konto, To-Do-Darstellung, intelligente Listen -->
+    <string name="default_list_name">Aufgaben</string>
+    <string name="login_skip">Ohne Anmeldung nutzen</string>
+    <string name="login_skip_hint">Alles bleibt auf diesem Gerät. Meldest du dich später an, werden deine Listen hochgeladen und abgeglichen.</string>
+    <string name="login_later_hint">Deine bisherigen Listen und Aufgaben werden nach der Anmeldung in die Nextcloud hochgeladen.</string>
+    <string name="settings_layout">Darstellung</string>
+    <string name="layout_listwerk">Listwerk</string>
+    <string name="layout_todo">Wie Microsoft To Do</string>
+    <string name="settings_local_mode">Ohne Konto: Listen liegen nur auf diesem Gerät.</string>
+    <string name="settings_login">Mit Nextcloud anmelden und abgleichen</string>
+    <string name="smart_my_day">Mein Tag</string>
+    <string name="smart_important">Wichtig</string>
+    <string name="smart_planned">Geplant</string>
+    <string name="smart_all">Aufgaben</string>
+    <string name="smart_completed">Erledigt</string>
+    <string name="search">Suchen</string>
+    <string name="sort_by">Sortieren nach …</string>
+    <string name="sort_manual">Eigene Reihenfolge</string>
+    <string name="sort_importance">Wichtigkeit</string>
+    <string name="sort_due">Fälligkeitsdatum</string>
+    <string name="sort_alpha">Alphabetisch</string>
+    <string name="sort_created">Erstellungsdatum</string>
+    <string name="steps_count">%1$d von %2$d</string>
+    <string name="add_task">Aufgabe hinzufügen</string>
+    <string name="add_to_my_day">Zu „Mein Tag“ hinzufügen</string>
+    <string name="remove_from_my_day">Aus „Mein Tag“ entfernen</string>
+    <string name="repeat_none">Nicht wiederholen</string>
+    <string name="repeat_daily">Täglich</string>
+    <string name="repeat_weekdays">Werktags</string>
+    <string name="repeat_weekly">Wöchentlich</string>
+    <string name="repeat_monthly">Monatlich</string>
+    <string name="repeat_yearly">Jährlich</string>
 </resources>

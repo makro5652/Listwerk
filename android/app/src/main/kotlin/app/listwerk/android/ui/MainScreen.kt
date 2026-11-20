@@ -38,6 +38,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -120,6 +122,11 @@ fun MainScreen(vm: MainViewModel, onRelogin: () -> Unit) {
     val focusInput by vm.focusInput.collectAsState()
     val showCompleted by vm.showCompleted.collectAsState()
     val planwerkLinks by vm.planwerkLinks.collectAsState()
+    val smartCounts by vm.smartCounts.collectAsState()
+    val signedIn by vm.signedIn.collectAsState()
+    val sortMode by vm.sortMode.collectAsState()
+    val query by vm.search.collectAsState()
+    var sortMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -163,7 +170,7 @@ fun MainScreen(vm: MainViewModel, onRelogin: () -> Unit) {
         drawerContent = {
             ModalDrawerSheet(drawerContainerColor = colors.sidebar) {
                 DrawerContent(
-                    lists = lists.orEmpty(), counts = counts, selection = selection, planwerkLinked = { it.isPlanwerkLinked },
+                    lists = lists.orEmpty(), counts = counts, smartCounts = smartCounts, selection = selection, planwerkLinked = { it.isPlanwerkLinked },
                     onSelect = { vm.select(it); scope.launch { drawerState.close() } },
                     onNewList = { scope.launch { drawerState.close() }; listDialog = ListDialogMode.Create },
                     onSettings = { scope.launch { drawerState.close() }; vm.screen.value = Screen.SETTINGS },
@@ -179,7 +186,12 @@ fun MainScreen(vm: MainViewModel, onRelogin: () -> Unit) {
                     title = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             currentList?.color?.let { ColorDot(colors.entryColor(it), 12.dp); Spacer(Modifier.width(8.dp)) }
-                            Text(currentList?.name ?: stringResource(R.string.all_open), maxLines = 1)
+                            if (query.isNotEmpty()) {
+                                androidx.compose.material3.TextField(
+                                    value = query.trimStart(), onValueChange = { vm.search.value = it.ifEmpty { " " } }, singleLine = true,
+                                    placeholder = { Text(stringResource(R.string.search)) },
+                                )
+                            } else Text(if (selection == AppPrefs.ALL) stringResource(R.string.all_open) else selectionTitle(selection, currentList), maxLines = 1)
                         }
                     },
                     navigationIcon = {
@@ -188,14 +200,26 @@ fun MainScreen(vm: MainViewModel, onRelogin: () -> Unit) {
                         }
                     },
                     actions = {
-                        if (sync.isSyncing) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                        else IconButton(onClick = { vm.syncNow() }) { Icon(Icons.Default.Sync, stringResource(R.string.action_sync)) }
+                        if (query.isNotEmpty()) IconButton(onClick = { vm.search.value = "" }) { Icon(Icons.Default.Close, stringResource(R.string.action_cancel)) }
+                        else IconButton(onClick = { vm.search.value = " " }) { Icon(Icons.Default.Search, stringResource(R.string.search)) }
+                        if (signedIn) {
+                            if (sync.isSyncing) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                            else IconButton(onClick = { vm.syncNow() }) { Icon(Icons.Default.Sync, stringResource(R.string.action_sync)) }
+                        }
                         IconButton(onClick = { menuOpen = true }) { Icon(Icons.Default.MoreVert, stringResource(R.string.more)) }
+                        DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
+                            for ((mode, label) in sortLabels) DropdownMenuItem(
+                                text = { Text(stringResource(label)) },
+                                leadingIcon = { if (mode == sortMode) Icon(Icons.Default.Check, null) },
+                                onClick = { sortMenu = false; vm.setSort(mode) },
+                            )
+                        }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(if (showCompleted) R.string.hide_completed else R.string.show_completed)) },
                                 onClick = { menuOpen = false; vm.setShowCompleted(!showCompleted) },
                             )
+                            DropdownMenuItem(text = { Text(stringResource(R.string.sort_by)) }, onClick = { menuOpen = false; sortMenu = true })
                             currentList?.let { l ->
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.edit_list)) },
@@ -217,7 +241,7 @@ fun MainScreen(vm: MainViewModel, onRelogin: () -> Unit) {
                 )
             },
             bottomBar = {
-                EntryBar(
+                if (selection != AppPrefs.COMPLETED) EntryBar(
                     targetName = entryTarget?.name,
                     enabled = entryTarget != null,
                     focusOnStart = focusInput,
@@ -254,8 +278,8 @@ fun MainScreen(vm: MainViewModel, onRelogin: () -> Unit) {
                         )
                     }
                     else -> TaskListContent(
-                        groups = g, lists = listMap, showListName = selection == AppPrefs.ALL,
-                        canReorder = currentList?.canWrite == true,
+                        groups = g, lists = listMap, showListName = AppPrefs.isSmart(selection),
+                        canReorder = currentList?.canWrite == true && sortMode == SortMode.MANUAL && query.isEmpty(),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 8.dp),
                         onOpen = { vm.openDetail(it) }, onToggle = { vm.toggleDone(it) }, onDelete = { vm.delete(it) },
                         onReorder = { uid, after -> vm.reorder(uid, after) },
@@ -331,6 +355,7 @@ fun ColorDot(color: Color, size: androidx.compose.ui.unit.Dp) {
 private fun DrawerContent(
     lists: List<TaskList>,
     counts: Map<String, Int>,
+    smartCounts: Map<String, Int>,
     selection: String,
     planwerkLinked: (TaskList) -> Boolean,
     onSelect: (String) -> Unit,
@@ -342,14 +367,16 @@ private fun DrawerContent(
         item {
             Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(16.dp, 24.dp, 16.dp, 12.dp))
         }
-        item {
+        items(smartLists, key = { it.id }) { s ->
             NavigationDrawerItem(
-                label = { Text(stringResource(R.string.all_open)) },
-                selected = selection == AppPrefs.ALL,
-                badge = { Text(counts.values.sum().toString()) },
-                onClick = { onSelect(AppPrefs.ALL) },
+                icon = { Icon(s.icon, null, tint = s.tint) },
+                label = { Text(if (s.id == AppPrefs.ALL) stringResource(R.string.all_open) else stringResource(s.name)) },
+                selected = selection == s.id,
+                badge = { smartCounts[s.id]?.let { Text(it.toString()) } },
+                onClick = { onSelect(s.id) },
             )
         }
+        item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
         items(lists, key = { it.href }) { l ->
             NavigationDrawerItem(
                 icon = { ColorDot(l.color?.let { colors.entryColor(it) } ?: MaterialTheme.colorScheme.outline, 14.dp) },

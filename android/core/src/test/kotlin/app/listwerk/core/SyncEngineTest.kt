@@ -57,6 +57,20 @@ class SyncEngineTest {
         assertEquals(listOf("Bleibt"), env.store.tasks(env.list).map { it.item.title })
     }
 
+    @Test
+    fun localListsWithoutAccountAreUploadedAfterLogin() = runBlocking {
+        val env = Env.make()
+        val local = env.store.createList("Offline", null, Store.LOCAL_HOME)
+        env.store.save(todo("Ohne Konto"), local.href)
+        val r = env.sync()
+        assertTrue(r.isClean, "${r.errors}")
+        val href = env.server.home + "offline/"
+        assertNotNull(env.server.collections[href], "Liste wurde auf dem Server angelegt")
+        assertEquals("Ohne Konto", env.server.item(href, "ohne-konto")?.title)
+        assertTrue(env.store.tasks(href).none { it.isDirty })
+        assertTrue(env.store.lists().none { it.href.startsWith(Store.LOCAL_HOME) })
+    }
+
     // MARK: Hochladen
 
     @Test

@@ -46,6 +46,37 @@ class AppPrefs(context: Context) {
         get() = p.getBoolean("signed_in", false)
         set(v) = p.edit().putBoolean("signed_in", v).apply()
 
+    /** Start-Bildschirm erledigt: angemeldet oder „Ohne Anmeldung nutzen“ gewählt. Bestehende Installationen gelten als erledigt. */
+    var onboarded: Boolean
+        get() = p.getBoolean("onboarded", signedIn)
+        set(v) = p.edit().putBoolean("onboarded", v).apply()
+
+    /** Darstellung: [LAYOUT_LISTWERK] oder [LAYOUT_TODO] (wie Microsoft To Do). */
+    var layout: String
+        get() = p.getString("layout", LAYOUT_LISTWERK) ?: LAYOUT_LISTWERK
+        set(v) = p.edit().putString("layout", v).apply()
+
+    /** Sortierung der Einträge, siehe [app.listwerk.android.ui.SortMode]. */
+    var sortMode: String
+        get() = p.getString("sort", "MANUAL") ?: "MANUAL"
+        set(v) = p.edit().putString("sort", v).apply()
+
+    /** UIDs in „Mein Tag“; gilt nur für den Tag [myDayDate] (wie in To Do beginnt jeder Tag leer). Nur auf diesem Gerät. */
+    var myDay: Set<String>
+        get() = if (p.getString("my_day_date", null) == java.time.LocalDate.now().toString()) p.getStringSet("my_day", emptySet()).orEmpty() else emptySet()
+        set(v) = p.edit().putString("my_day_date", java.time.LocalDate.now().toString()).putStringSet("my_day", v).apply()
+
+    /** Nach dem Übernehmen lokaler Listen ins Konto: gemerkte Hrefs umschreiben. */
+    fun remapLists(moved: Map<String, String>) {
+        if (moved.isEmpty()) return
+        val e = p.edit()
+        for (key in listOf("last_list", "last_writable", "start_list")) p.getString(key, null)?.let { old -> moved[old]?.let { e.putString(key, it) } }
+        e.apply()
+        val w = widgets.edit()
+        for ((k, v) in widgets.all) if (v is String) moved[v]?.let { w.putString(k, it) }
+        w.apply()
+    }
+
     var planwerkUrl: String
         get() = p.getString("planwerk_url", "") ?: ""
         set(v) = p.edit().putString("planwerk_url", v.trim()).apply()
@@ -96,11 +127,21 @@ class AppPrefs(context: Context) {
     fun removeWidget(appWidgetId: Int) = widgets.edit().remove("list_$appWidgetId").apply()
 
     fun clearAccountData() {
-        p.edit().remove("last_list").remove("start_list").remove("last_writable").remove("last_sync").remove("planwerk_links").remove("reminders_fired_until").putBoolean("signed_in", false).apply()
+        p.edit().remove("last_list").remove("start_list").remove("last_writable").remove("last_sync").remove("planwerk_links").remove("reminders_fired_until").putBoolean("signed_in", false).putBoolean("onboarded", false).apply()
     }
 
     companion object {
         const val ALL = "*"
+
+        // Intelligente Listen wie in Microsoft To Do. Beginnen wie [ALL] mit „*“: nie ein gültiger Href.
+        const val MY_DAY = "*myday"
+        const val IMPORTANT = "*important"
+        const val PLANNED = "*planned"
+        const val COMPLETED = "*completed"
+        fun isSmart(selection: String) = selection.startsWith("*")
+
+        const val LAYOUT_LISTWERK = "listwerk"
+        const val LAYOUT_TODO = "todo"
 
         /** Platzhalter für „zuletzt benutzte Liste“ (kein gültiger Href). */
         const val START_LAST = "@last"

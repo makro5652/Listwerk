@@ -23,7 +23,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,16 +32,21 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class Screen { MAIN, SETTINGS }
+enum class Screen { MAIN, SETTINGS, LOGIN }
+
+/** Sortierung wie in Microsoft To Do; MANUAL = eigene Reihenfolge (Ziehen). */
+enum class SortMode { MANUAL, IMPORTANCE, DUE, ALPHA, CREATED }
 
 /** Ein Eintrag der Hauptebene samt seinen Unteraufgaben. */
 data class TaskGroup(val rec: TaskRecord, val children: List<TaskRecord>) {
     val uid: String get() = rec.item.uid
+
+    /** Eindeutig auch über Listen hinweg (dieselbe UID kann in zwei Listen liegen). */
+    val key: String get() = rec.id
 }
 
 sealed interface LoginState {
@@ -63,7 +67,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = c.repository
     private val prefs = c.prefs
 
+    /** Ein Nextcloud-Konto ist eingerichtet. Ohne Konto arbeitet die App rein lokal. */
     val signedIn = MutableStateFlow(prefs.signedIn)
+    val onboarded = MutableStateFlow(prefs.onboarded)
+    val layout = MutableStateFlow(prefs.layout)
+    val sortMode = MutableStateFlow(runCatching { SortMode.valueOf(prefs.sortMode) }.getOrDefault(SortMode.MANUAL))
+    val search = MutableStateFlow("")
+    val myDay = MutableStateFlow(prefs.myDay)
     val screen = MutableStateFlow(Screen.MAIN)
     val login = MutableStateFlow<LoginState>(LoginState.Idle)
     val syncStatus: StateFlow<SyncStatus> = c.syncStatus
@@ -82,22 +92,63 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val startList = MutableStateFlow(prefs.startList)
     val detail = MutableStateFlow<Pair<String, String>?>(null)
 
-    private val events = Channel<UiEvent>(Channel.BUFFERED)
-    val uiEvents: Flow<UiEvent> = events.receiveAsFlow()
+    // SharedFlow statt Channel: Activity (Links) und Bildschirm (Snackbars) sammeln beide; ein Channel gäbe jedes Ereignis nur einem.
+    private val events = kotlinx.coroutines.flow.MutableSharedFlow<UiEvent>(extraBufferCapacity = 16)
+    val uiEvents: Flow<UiEvent> = events
 
     /** Null, solange die Datenbank noch nicht gelesen wurde. */
-    val lists: StateFlow<List<TaskList>?> = signedIn.flatMapLatest { if (it) repo.lists() else kotlinx.coroutines.flow.flowOf(emptyList()) }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val lists: StateFlow<List<TaskList>?> = repo.lists().stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val openCounts: StateFlow<Map<String, Int>> = signedIn.flatMapLatest { if (it) repo.openCounts() else kotlinx.coroutines.flow.flowOf(emptyMap()) }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+    val openCounts: StateFlow<Map<String, Int>> = repo.openCounts().stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
-    private val rawTasks: Flow<List<TaskRecord>> = combine(selection, signedIn) { s, i -> s to i }
-        .flatMapLatest { (s, i) -> if (i) repo.tasks(s) else kotlinx.coroutines.flow.flowOf(emptyList()) }
+    /** Alle Einträge aller Listen (für die Zähler der intelligenten Listen). */
+    private val everything: StateFlow<List<TaskRecord>> = repo.tasks(AppPrefs.ALL).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val groups: StateFlow<List<TaskGroup>?> = combine(rawTasks, showCompleted) { all, completed ->
+    /** Offene Einträge je intelligenter Liste. */
+    val smartCounts: StateFlow<Map<String, Int>> = combine(everything, myDay) { all, md ->
+        val open = all.filter { it.item.parentUID == null && !it.item.isCompleted }
+        mapOf(
+            AppPrefs.MY_DAY to open.count { matches(AppPrefs.MY_DAY, it, md) },
+            AppPrefs.IMPORTANT to open.count { matches(AppPrefs.IMPORTANT, it, md) },
+            AppPrefs.PLANNED to open.count { matches(AppPrefs.PLANNED, it, md) },
+            AppPrefs.ALL to open.size,
+        )
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    private fun matches(selection: String, rec: TaskRecord, md: Set<String>): Boolean = when (selection) {
+        AppPrefs.MY_DAY -> rec.item.uid in md || rec.item.due?.localDay()?.let { !it.isAfter(java.time.LocalDate.now()) } == true
+        AppPrefs.IMPORTANT -> rec.item.priority in 1..4
+        AppPrefs.PLANNED -> rec.item.due != null
+        AppPrefs.COMPLETED -> rec.item.isCompleted
+        else -> true
+    }
+
+    private val rawTasks: Flow<List<TaskRecord>> = selection.flatMapLatest { repo.tasks(it) }
+
+    val groups: StateFlow<List<TaskGroup>?> = combine(
+        combine(rawTasks, selection, myDay, ::Triple),
+        combine(showCompleted, layout, sortMode, search) { a, b, c, d -> listOf(a, b, c, d) },
+    ) { (all, sel, md), opts ->
+        val completed = opts[0] as Boolean || opts[1] == AppPrefs.LAYOUT_TODO || sel == AppPrefs.COMPLETED
+        val sort = opts[2] as SortMode
+        val query = (opts[3] as String).trim()
         val byParent = all.filter { it.item.parentUID != null }.groupBy { it.item.parentUID }
-        val tops = all.filter { it.item.parentUID == null }.filter { completed || !it.item.isCompleted }
+        var tops = all.filter { it.item.parentUID == null }
+            .filter { matches(sel, it, md) }
+            .filter { completed || !it.item.isCompleted }
+        if (query.isNotEmpty()) {
+            tops = tops.filter { r ->
+                listOf(r.item.title, r.item.notes).any { it.contains(query, ignoreCase = true) } ||
+                    byParent[r.item.uid].orEmpty().any { it.item.title.contains(query, ignoreCase = true) }
+            }
+        }
+        tops = when (sort) {
+            SortMode.MANUAL -> if (sel == AppPrefs.PLANNED) tops.sortedBy { it.item.due?.valueString } else tops
+            SortMode.IMPORTANCE -> tops.sortedBy { if (it.item.priority == 0) 10 else it.item.priority }
+            SortMode.DUE -> tops.sortedWith(compareBy(nullsLast()) { it.item.due?.valueString })
+            SortMode.ALPHA -> tops.sortedBy { it.item.title.lowercase() }
+            SortMode.CREATED -> tops.sortedByDescending { it.item.created }
+        }
         tops.map { TaskGroup(it, byParent[it.item.uid].orEmpty()) }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
@@ -107,7 +158,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     /** Liste, in die das Eingabefeld schreibt: die gewählte, sonst die zuletzt beschreibbare. */
     val entryTarget: StateFlow<TaskList?> = combine(lists, selection) { l, s ->
         val writable = l.orEmpty().filter { it.canWrite }
-        writable.firstOrNull { it.href == s } ?: if (s == AppPrefs.ALL) writable.firstOrNull { it.href == prefs.lastWritableList } ?: writable.firstOrNull() else null
+        writable.firstOrNull { it.href == s } ?: if (AppPrefs.isSmart(s)) writable.firstOrNull { it.href == prefs.lastWritableList } ?: writable.firstOrNull() else null
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
@@ -116,8 +167,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val l = lists.filterNotNull().first()
             // Gewählte Startliste existiert nicht mehr (gelöscht, Konto gewechselt): zurück auf „zuletzt benutzte“.
             val start = startList.value
-            if (signedIn.value && start != AppPrefs.START_LAST && start != AppPrefs.ALL && l.none { it.href == start }) setStartList(AppPrefs.START_LAST)
-            if (signedIn.value && selection.value != AppPrefs.ALL && l.none { it.href == selection.value }) {
+            if (start != AppPrefs.START_LAST && !AppPrefs.isSmart(start) && l.none { it.href == start }) setStartList(AppPrefs.START_LAST)
+            if (!AppPrefs.isSmart(selection.value) && l.none { it.href == selection.value }) {
                 select(l.firstOrNull()?.href ?: AppPrefs.ALL)
             }
         }
@@ -132,7 +183,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun select(href: String) {
         selection.value = href
         prefs.lastList = href
-        if (href != AppPrefs.ALL) {
+        search.value = ""
+        if (!AppPrefs.isSmart(href)) {
             val l = lists.value?.firstOrNull { it.href == href }
             if (l?.canWrite == true) prefs.lastWritableList = href
         }
@@ -146,6 +198,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setShowCompleted(on: Boolean) { showCompleted.value = on; prefs.showCompleted = on }
 
+    fun setLayout(value: String) { layout.value = value; prefs.layout = value }
+
+    fun setSort(mode: SortMode) { sortMode.value = mode; prefs.sortMode = mode.name }
+
+    fun toggleMyDay(uid: String) {
+        val now = prefs.myDay
+        val next = if (uid in now) now - uid else now + uid
+        prefs.myDay = next
+        myDay.value = next
+    }
+
+    /** Stern wie in To Do: hohe Priorität an/aus. */
+    fun toggleImportant(rec: TaskRecord) = save(rec.item.copy(priority = if (rec.item.priority in 1..4) 0 else 1), rec.listHref)
+
     fun openDetail(rec: TaskRecord) { detail.value = rec.listHref to rec.item.uid }
     fun openDetail(listHref: String, uid: String) { detail.value = listHref to uid }
     fun closeDetail() { detail.value = null }
@@ -158,7 +224,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun addTask(title: String, color: String?, due: ICalDate?) {
         val target = entryTarget.value ?: return
-        viewModelScope.launch { repo.addTask(target.href, title, color, due) }
+        val sel = selection.value
+        // Wie in To Do: in „Wichtig“ mit Stern, in „Geplant“ für heute, in „Mein Tag“ direkt im Tag.
+        val today = java.time.LocalDate.now().let { ICalDate.day(it.year, it.monthValue, it.dayOfMonth) }
+        viewModelScope.launch {
+            val item = repo.addTask(
+                target.href, title, color,
+                due ?: today.takeIf { sel == AppPrefs.PLANNED },
+                priority = if (sel == AppPrefs.IMPORTANT) 1 else 0,
+            )
+            if (item != null && sel == AppPrefs.MY_DAY) toggleMyDay(item.uid)
+        }
     }
 
     fun addSubtask(parent: TaskRecord, title: String) {
@@ -172,7 +248,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun delete(rec: TaskRecord) {
         viewModelScope.launch {
             val undo = repo.delete(rec.listHref, rec.item.uid)
-            events.send(UiEvent.Undo(undo, rec.item.title))
+            events.emit(UiEvent.Undo(undo, rec.item.title))
         }
     }
 
@@ -187,7 +263,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun reorder(uid: String, afterUid: String?) {
         val list = currentList.value ?: return
-        if (!list.canWrite) return
+        if (!list.canWrite || sortMode.value != SortMode.MANUAL || search.value.isNotBlank()) return
         viewModelScope.launch { repo.reorder(uid, list.href, afterUid) }
     }
 
@@ -196,7 +272,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun createList(name: String, color: String?) {
         viewModelScope.launch {
             val l = repo.createList(name, color)
-            if (l != null) select(l.href) else events.send(UiEvent.Message(c.app.getString(R.string.error_not_connected)))
+            if (l != null) select(l.href)
         }
     }
 
@@ -206,6 +282,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             repo.deleteList(list.href)
             if (selection.value == list.href) select(AppPrefs.ALL)
+            if (prefs.startList == list.href) setStartList(AppPrefs.START_LAST)
         }
     }
 
@@ -232,17 +309,24 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 val flow = LoginFlowV2(c.transport)
                 val session = flow.start(text)
                 login.value = LoginState.Waiting(session.loginUrl)
-                events.send(UiEvent.OpenUrl(session.loginUrl))
+                events.emit(UiEvent.OpenUrl(session.loginUrl))
                 val creds = flow.waitForCredentials(session)
                 val client = CalDAVClient(creds.serverUrl, creds.loginName, creds.appPassword, c.transport)
                 val found = client.discover()
                 val account = Account(creds.serverUrl, creds.loginName, found.principal, found.home)
-                withContext(Dispatchers.IO) {
+                val moved = withContext(Dispatchers.IO) {
                     c.secrets.put(c.sync.accountKey(account), creds.appPassword)
                     c.store.saveAccount(account)
+                    // Ohne Anmeldung angelegte Listen gehen ins Konto und werden beim folgenden Abgleich hochgeladen.
+                    c.store.adoptLocalLists(found.home)
                 }
+                prefs.remapLists(moved)
+                moved[selection.value]?.let { selection.value = it }
+                moved[startList.value]?.let { startList.value = it }
                 prefs.signedIn = true
+                prefs.onboarded = true
                 signedIn.value = true
+                onboarded.value = true
                 login.value = LoginState.Idle
                 screen.value = Screen.MAIN
                 c.sync.ensurePeriodic()
@@ -253,6 +337,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 login.value = LoginState.Failed(app.getString(R.string.login_failed, e.message ?: ""))
             } catch (e: Exception) {
                 login.value = LoginState.Failed(app.getString(R.string.login_failed, e.message ?: e.javaClass.simpleName))
+            }
+        }
+    }
+
+    /** „Ohne Anmeldung nutzen“: lokal arbeiten, eine erste Liste anlegen. */
+    fun skipLogin() {
+        prefs.onboarded = true
+        onboarded.value = true
+        screen.value = Screen.MAIN
+        viewModelScope.launch {
+            if (withContext(Dispatchers.IO) { c.store.lists().isEmpty() }) {
+                repo.createList(c.app.getString(R.string.default_list_name), null)?.let { select(it.href) }
             }
         }
     }
@@ -272,6 +368,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             c.syncStatus.value = SyncStatus()
             c.widgets.update()
             signedIn.value = false
+            onboarded.value = false
             selection.value = AppPrefs.ALL
             screen.value = Screen.MAIN
         }
@@ -295,7 +392,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 withContext(Dispatchers.IO) { c.secrets.remove(SyncRunner.PLANWERK_TOKEN) }
                 planwerkUrl.value = ""; planwerkTokenSaved.value = false
                 c.planwerkLinks.value = emptyMap(); prefs.planwerkLinksJson = ""
-                events.send(UiEvent.Message(app.getString(R.string.planwerk_removed)))
+                events.emit(UiEvent.Message(app.getString(R.string.planwerk_removed)))
                 return@launch
             }
             val finalUrl = if (cleanUrl.contains("://")) cleanUrl else "https://$cleanUrl"
@@ -306,14 +403,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 planwerkUrl.value = finalUrl
                 withContext(Dispatchers.IO) { c.secrets.put(SyncRunner.PLANWERK_TOKEN, effectiveToken) }
                 planwerkTokenSaved.value = true
-                events.send(UiEvent.Message(app.getString(R.string.planwerk_connected, rev)))
+                events.emit(UiEvent.Message(app.getString(R.string.planwerk_connected, rev)))
                 c.sync.schedule(0)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: DavError.Unauthorized) {
-                events.send(UiEvent.Message(app.getString(R.string.planwerk_token_rejected)))
+                events.emit(UiEvent.Message(app.getString(R.string.planwerk_token_rejected)))
             } catch (e: Exception) {
-                events.send(UiEvent.Message(app.getString(R.string.planwerk_failed, e.message ?: "")))
+                events.emit(UiEvent.Message(app.getString(R.string.planwerk_failed, e.message ?: "")))
             }
         }
     }

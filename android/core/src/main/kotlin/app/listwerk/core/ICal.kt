@@ -253,7 +253,8 @@ data class ICalDate(
 
     /** Kalendertag in der Ortszeit des Geräts (für „Heute“, „Überfällig“). */
     fun localDay(zone: ZoneId = ZoneId.systemDefault()): java.time.LocalDate {
-        if (kind == Kind.Day) return java.time.LocalDate.of(year, month, day)
+        // Ungültige Tage aus fremden Dateien (z. B. 30. Februar) dürfen die Anzeige nicht abstürzen lassen.
+        if (kind == Kind.Day) return try { java.time.LocalDate.of(year, month, day) } catch (_: DateTimeException) { java.time.LocalDate.EPOCH }
         return instant(zone).atZone(zone).toLocalDate()
     }
 

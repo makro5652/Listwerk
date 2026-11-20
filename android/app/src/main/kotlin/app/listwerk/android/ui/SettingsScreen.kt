@@ -43,6 +43,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -96,6 +100,16 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Header(stringResource(R.string.settings_design))
+            val layout by vm.layout.collectAsState()
+            Text(stringResource(R.string.settings_layout))
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                val options = listOf(AppPrefs.LAYOUT_LISTWERK to R.string.layout_listwerk, AppPrefs.LAYOUT_TODO to R.string.layout_todo)
+                options.forEachIndexed { i, (id, label) ->
+                    SegmentedButton(selected = layout == id, onClick = { vm.setLayout(id) }, shape = SegmentedButtonDefaults.itemShape(i, options.size)) {
+                        Text(stringResource(label))
+                    }
+                }
+            }
             ThemePicker(catalog, themeId, vm::setTheme)
 
             Header(stringResource(R.string.settings_behavior))
@@ -127,6 +141,10 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit) {
             }
 
             Header(stringResource(R.string.settings_nextcloud))
+            if (account == null) {
+                Text(stringResource(R.string.settings_local_mode), style = MaterialTheme.typography.bodyMedium)
+                Button(onClick = { vm.screen.value = Screen.LOGIN }) { Text(stringResource(R.string.settings_login)) }
+            }
             account?.let { a ->
                 Text("${a.loginName}\n${a.serverUrl}", style = MaterialTheme.typography.bodyMedium)
                 sync.lastMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }

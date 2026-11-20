@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -82,85 +83,97 @@ fun TaskListContent(
     onDelete: (TaskRecord) -> Unit,
     onReorder: (uid: String, afterUid: String?) -> Unit,
     modifier: Modifier = Modifier,
+    /** Darstellung wie Microsoft To Do: Karten, Stern, Unteraufgaben als Zähler statt eigener Zeilen. */
+    todoStyle: Boolean = false,
+    myDay: Set<String> = emptySet(),
+    onStar: (TaskRecord) -> Unit = {},
+    footer: LazyListScope.() -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    var order by remember { mutableStateOf(groups.map { it.uid }) }
+    var order by remember { mutableStateOf(groups.map { it.key }) }
     var dragging by remember { mutableStateOf<String?>(null) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
     var staleWhileDragging by remember { mutableStateOf(false) }
 
     LaunchedEffect(groups) {
-        if (dragging == null) order = groups.map { it.uid } else staleWhileDragging = true
+        if (dragging == null) order = groups.map { it.key } else staleWhileDragging = true
     }
 
-    val byUid = remember(groups) { groups.associateBy { it.uid } }
+    val byUid = remember(groups) { groups.associateBy { it.key } }
     val shown = order.mapNotNull { byUid[it] }
 
     LazyColumn(modifier = modifier.fillMaxSize(), state = listState, contentPadding = contentPadding) {
-        items(shown, key = { it.uid }) { g ->
-            val isDragged = g.uid == dragging
+        items(shown, key = { it.key }) { g ->
+            val isDragged = g.key == dragging
             Box(
                 Modifier
+                    .then(if (todoStyle) Modifier.padding(horizontal = 10.dp, vertical = 2.dp).clip(RoundedCornerShape(8.dp)) else Modifier)
                     .zIndex(if (isDragged) 1f else 0f)
                     .graphicsLayer { translationY = if (isDragged) dragOffset else 0f; shadowElevation = if (isDragged) 12f else 0f }
                     .then(if (isDragged) Modifier.background(MaterialTheme.colorScheme.surfaceContainer) else Modifier),
             ) {
                 Column {
-                    SwipeRow(g.rec, onDelete) {
-                        TaskRowView(
+                    SwipeRow(g.rec, onDelete, todoStyle) {
+                        val handle: (@Composable () -> Unit)? = if (canReorder) {
+                            {
+                                DragHandle(
+                                    onStart = { dragging = g.key; dragOffset = 0f; staleWhileDragging = false },
+                                    onDrag = { dy ->
+                                        dragOffset += dy
+                                        val info = listState.layoutInfo.visibleItemsInfo
+                                        val cur = info.firstOrNull { it.key == dragging } ?: return@DragHandle
+                                        val center = cur.offset + cur.size / 2f + dragOffset
+                                        val target = info.firstOrNull { it.key != dragging && it.key is String && center >= it.offset && center <= it.offset + it.size }
+                                        if (target != null) {
+                                            val from = order.indexOf(dragging)
+                                            val to = order.indexOf(target.key as String)
+                                            if (from >= 0 && to >= 0) {
+                                                val visual = cur.offset + dragOffset
+                                                val newBase = if (to > from) target.offset + target.size - cur.size else target.offset
+                                                order = order.toMutableList().apply { add(to, removeAt(from)) }
+                                                dragOffset = visual - newBase
+                                            }
+                                        }
+                                        // Automatisch scrollen am Rand
+                                        val viewportTop = listState.layoutInfo.viewportStartOffset
+                                        val viewportBottom = listState.layoutInfo.viewportEndOffset
+                                        val vis = cur.offset + dragOffset
+                                        val step = when {
+                                            vis < viewportTop + 40 -> -24f
+                                            vis + cur.size > viewportBottom - 40 -> 24f
+                                            else -> 0f
+                                        }
+                                        if (step != 0f) scope.launch { dragOffset += listState.scrollBy(step) }
+                                    },
+                                    onEnd = {
+                                        val key = dragging
+                                        if (key != null) {
+                                            val idx = order.indexOf(key)
+                                            val original = groups.map { it.key }
+                                            // Umsortieren gibt es nur in einer Einzelliste: dort ist die UID eindeutig.
+                                            if (order != original && idx >= 0) byUid[key]?.let { moved ->
+                                                onReorder(moved.uid, if (idx == 0) null else byUid[order[idx - 1]]?.uid)
+                                            }
+                                        }
+                                        dragging = null
+                                        dragOffset = 0f
+                                    },
+                                )
+                            }
+                        } else null
+                        if (todoStyle) {
+                            TodoRowView(g, if (showListName) lists[g.rec.listHref]?.name else null, g.uid in myDay, onOpen, onToggle, onStar, handle)
+                        } else TaskRowView(
                             rec = g.rec,
                             listName = if (showListName) lists[g.rec.listHref]?.name else null,
                             indent = false,
                             onOpen = onOpen,
                             onToggle = onToggle,
-                            handle = if (canReorder) {
-                                {
-                                    DragHandle(
-                                        onStart = { dragging = g.uid; dragOffset = 0f; staleWhileDragging = false },
-                                        onDrag = { dy ->
-                                            dragOffset += dy
-                                            val info = listState.layoutInfo.visibleItemsInfo
-                                            val cur = info.firstOrNull { it.key == dragging } ?: return@DragHandle
-                                            val center = cur.offset + cur.size / 2f + dragOffset
-                                            val target = info.firstOrNull { it.key != dragging && center >= it.offset && center <= it.offset + it.size }
-                                            if (target != null) {
-                                                val from = order.indexOf(dragging)
-                                                val to = order.indexOf(target.key as String)
-                                                if (from >= 0 && to >= 0) {
-                                                    val visual = cur.offset + dragOffset
-                                                    val newBase = if (to > from) target.offset + target.size - cur.size else target.offset
-                                                    order = order.toMutableList().apply { add(to, removeAt(from)) }
-                                                    dragOffset = visual - newBase
-                                                }
-                                            }
-                                            // Automatisch scrollen am Rand
-                                            val viewportTop = listState.layoutInfo.viewportStartOffset
-                                            val viewportBottom = listState.layoutInfo.viewportEndOffset
-                                            val vis = cur.offset + dragOffset
-                                            val step = when {
-                                                vis < viewportTop + 40 -> -24f
-                                                vis + cur.size > viewportBottom - 40 -> 24f
-                                                else -> 0f
-                                            }
-                                            if (step != 0f) scope.launch { dragOffset += listState.scrollBy(step) }
-                                        },
-                                        onEnd = {
-                                            val uid = dragging
-                                            if (uid != null) {
-                                                val idx = order.indexOf(uid)
-                                                val original = groups.map { it.uid }
-                                                if (order != original && idx >= 0) onReorder(uid, if (idx == 0) null else order[idx - 1])
-                                            }
-                                            dragging = null
-                                            dragOffset = 0f
-                                        },
-                                    )
-                                }
-                            } else null,
+                            handle = handle,
                         )
                     }
-                    for (child in g.children) {
+                    if (!todoStyle) for (child in g.children) {
                         SwipeRow(child, onDelete) {
                             TaskRowView(rec = child, listName = null, indent = true, onOpen = onOpen, onToggle = onToggle, handle = null)
                         }
@@ -168,6 +181,7 @@ fun TaskListContent(
                 }
             }
         }
+        footer()
     }
 }
 
@@ -193,7 +207,7 @@ private fun DragHandle(onStart: () -> Unit, onDrag: (Float) -> Unit, onEnd: () -
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SwipeRow(rec: TaskRecord, onDelete: (TaskRecord) -> Unit, content: @Composable () -> Unit) {
+fun SwipeRow(rec: TaskRecord, onDelete: (TaskRecord) -> Unit, todoStyle: Boolean = false, content: @Composable () -> Unit) {
     val state = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             if (value == SwipeToDismissBoxValue.EndToStart) { onDelete(rec); true } else false
@@ -211,7 +225,7 @@ private fun SwipeRow(rec: TaskRecord, onDelete: (TaskRecord) -> Unit, content: @
             }
         },
     ) {
-        Box(Modifier.background(MaterialTheme.colorScheme.background)) { content() }
+        Box(Modifier.background(if (todoStyle) MaterialTheme.colorScheme.surfaceContainerLowest else MaterialTheme.colorScheme.background)) { content() }
     }
 }
 

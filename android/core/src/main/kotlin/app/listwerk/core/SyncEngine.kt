@@ -44,6 +44,7 @@ class SyncEngine(
         }
         val report = SyncReport()
 
+        store.adoptLocalLists(home) // ohne Konto angelegte Listen (normalerweise schon beim Anmelden übernommen)
         pushListChanges(report)
         pushMoves(report)
 

@@ -18,7 +18,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import app.listwerk.android.data.AppPrefs
 import app.listwerk.android.ui.ListwerkTheme
+import app.listwerk.android.ui.TodoScreen
 import app.listwerk.android.ui.LoginScreen
 import app.listwerk.android.ui.MainScreen
 import app.listwerk.android.ui.MainViewModel
@@ -46,16 +48,22 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val themeId by vm.themeId.collectAsState()
-            val signedIn by vm.signedIn.collectAsState()
+            val onboarded by vm.onboarded.collectAsState()
             val screen by vm.screen.collectAsState()
+            val layout by vm.layout.collectAsState()
             ListwerkTheme(container.themes, themeId) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     when {
-                        !signedIn -> LoginScreen(vm)
+                        !onboarded -> LoginScreen(vm, onBack = null)
+                        screen == Screen.LOGIN -> {
+                            BackHandler { vm.cancelLogin(); vm.screen.value = Screen.SETTINGS }
+                            LoginScreen(vm, onBack = { vm.cancelLogin(); vm.screen.value = Screen.SETTINGS })
+                        }
                         screen == Screen.SETTINGS -> {
                             BackHandler { vm.screen.value = Screen.MAIN }
                             SettingsScreen(vm, onBack = { vm.screen.value = Screen.MAIN })
                         }
+                        layout == AppPrefs.LAYOUT_TODO -> TodoScreen(vm, onRelogin = { vm.logout() })
                         else -> MainScreen(vm, onRelogin = { vm.logout() })
                     }
                 }

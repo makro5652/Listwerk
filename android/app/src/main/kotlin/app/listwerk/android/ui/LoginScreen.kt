@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -34,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import app.listwerk.android.R
 
 @Composable
-fun LoginScreen(vm: MainViewModel) {
+fun LoginScreen(vm: MainViewModel, onBack: (() -> Unit)?) {
     val state by vm.login.collectAsState()
     var server by rememberSaveable { mutableStateOf("") }
     Column(
@@ -67,6 +68,15 @@ fun LoginScreen(vm: MainViewModel) {
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = { vm.startLogin(server) }, enabled = server.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.login_button))
+                }
+                Spacer(Modifier.height(8.dp))
+                if (onBack == null) {
+                    // Erststart: auch ganz ohne Konto nutzbar; eine spätere Anmeldung lädt alles hoch.
+                    TextButton(onClick = { vm.skipLogin() }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.login_skip)) }
+                    Text(stringResource(R.string.login_skip_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.action_cancel)) }
+                    Text(stringResource(R.string.login_later_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

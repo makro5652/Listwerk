@@ -168,6 +168,28 @@ abstract class StoreContractTest {
     }
 
     @Test
+    fun adoptLocalListsMovesListsAndTasksIntoAccount() {
+        val store = Store(newBackend())
+        val home = "/remote.php/dav/calendars/nutzer/"
+        val local = store.createList("Einkauf", "#1e66f5", Store.LOCAL_HOME)
+        assertEquals("local:/einkauf/", local.href)
+        store.save(todo("milch"), local.href, testNow)
+        store.save(todo("brot") { it.copy(parentUID = "milch") }, local.href, testNow)
+        // Gleichnamige Liste existiert schon im Konto: neue Href bekommt eine Nummer.
+        store.applyRemoteLists(listOf(RemoteList("${home}einkauf/", "Einkauf (Server)")))
+
+        val moved = store.adoptLocalLists(home)
+
+        val target = "${home}einkauf-2/"
+        assertEquals(mapOf(local.href to target), moved)
+        assertEquals(setOf("${home}einkauf/", target), store.lists().map { it.href }.toSet())
+        assertEquals(listOf("brot", "milch"), store.tasks(target).map { it.item.uid }.sorted())
+        assertTrue(store.tasks(target).all { it.isDirty && it.href == null }, "Einträge werden beim Abgleich hochgeladen")
+        assertEquals("Einkauf", store.list(target)?.name)
+        assertEquals(emptyMap(), store.adoptLocalLists(home), "zweiter Aufruf ändert nichts")
+    }
+
+    @Test
     fun deleteListCascadesToItems() {
         val (store, list) = makeStore()
         store.save(todo("a"), list, testNow)

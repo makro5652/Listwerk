@@ -69,6 +69,10 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.listwerk.android.R
+import app.listwerk.core.Recurrence
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.outlined.StarOutline
 import app.listwerk.core.ICalDate
 import app.listwerk.core.PlanwerkKind
 import app.listwerk.core.PlanwerkLink
@@ -181,7 +185,20 @@ private fun DetailContent(
                 modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.title)) },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             )
+            val important = draft.priority in 1..4
+            IconButton(onClick = { draft = draft.copy(priority = if (important) 0 else 1) }, enabled = editable) {
+                Icon(if (important) Icons.Default.Star else Icons.Outlined.StarOutline, stringResource(R.string.smart_important), tint = if (important) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
+
+        // Mein Tag (nur auf diesem Gerät, wie in To Do jeden Tag neu)
+        val myDay by vm.myDay.collectAsState()
+        val inMyDay = rec.item.uid in myDay
+        AssistChip(
+            onClick = { vm.toggleMyDay(rec.item.uid) },
+            label = { Text(stringResource(if (inMyDay) R.string.remove_from_my_day else R.string.add_to_my_day)) },
+            leadingIcon = { Icon(Icons.Default.WbSunny, null, Modifier.size(18.dp)) },
+        )
 
         OutlinedTextField(
             value = draft.notes, onValueChange = { draft = draft.copy(notes = it) }, enabled = editable,
@@ -215,10 +232,25 @@ private fun DetailContent(
             }
         }
         if (planwerkList) Text(stringResource(R.string.planwerk_day_only), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        draft.recurrence?.let {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Repeat, null, Modifier.size(16.dp))
-                Text(" " + stringResource(R.string.recurring_readonly, it), style = MaterialTheme.typography.bodySmall)
+        // Wiederholen: die einfachen Regeln wie in To Do; fremde Regeln bleiben erhalten, bis eine andere gewählt wird.
+        var repeatMenu by remember { mutableStateOf(false) }
+        val repeatOptions = listOf(
+            null to R.string.repeat_none, Recurrence.DAILY to R.string.repeat_daily, Recurrence.WEEKDAYS to R.string.repeat_weekdays,
+            Recurrence.WEEKLY to R.string.repeat_weekly, Recurrence.MONTHLY to R.string.repeat_monthly, Recurrence.YEARLY to R.string.repeat_yearly,
+        )
+        Box {
+            val current = repeatOptions.firstOrNull { it.first == draft.recurrence }?.second
+            AssistChip(
+                onClick = { repeatMenu = true }, enabled = editable,
+                leadingIcon = { Icon(Icons.Default.Repeat, null, Modifier.size(18.dp)) },
+                label = { Text(current?.let { stringResource(it) } ?: stringResource(R.string.recurring_readonly, draft.recurrence.orEmpty())) },
+            )
+            DropdownMenu(expanded = repeatMenu, onDismissRequest = { repeatMenu = false }) {
+                for ((rule, label) in repeatOptions) DropdownMenuItem(text = { Text(stringResource(label)) }, onClick = {
+                    repeatMenu = false
+                    val today = LocalDate.now()
+                    draft = draft.copy(recurrence = rule, due = draft.due ?: if (rule != null) ICalDate.day(today.year, today.monthValue, today.dayOfMonth) else null)
+                })
             }
         }
 

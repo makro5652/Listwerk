@@ -5,6 +5,8 @@ import app.listwerk.android.data.AppPrefs
 import app.listwerk.core.Account
 import app.listwerk.core.ICalDate
 import app.listwerk.core.PlanwerkMeta
+import app.listwerk.core.Recurrence
+import app.listwerk.core.Store
 import app.listwerk.core.TaskList
 import app.listwerk.core.TaskRecord
 import app.listwerk.core.TodoItem
@@ -38,7 +40,7 @@ class Repository(private val c: AppContainer) {
 
     /** Einträge einer Liste (Unteraufgaben inklusive) bzw. aller Listen bei [AppPrefs.ALL]. */
     fun tasks(selection: String): Flow<List<TaskRecord>> = observe {
-        if (selection == AppPrefs.ALL) {
+        if (AppPrefs.isSmart(selection)) {
             val visible = store.lists().map { it.href }.toSet()
             store.allTasks().filter { it.listHref in visible }
         } else store.tasks(selection)
@@ -46,7 +48,7 @@ class Repository(private val c: AppContainer) {
 
     /** Offene Einträge der obersten Ebene für das Widget (einmalige Abfrage). */
     suspend fun openTopLevel(selection: String): List<TaskRecord> = io {
-        val all = if (selection == AppPrefs.ALL) {
+        val all = if (AppPrefs.isSmart(selection)) {
             val visible = store.lists().map { it.href }.toSet()
             store.allTasks().filter { it.listHref in visible }
         } else store.tasks(selection)
@@ -59,7 +61,7 @@ class Repository(private val c: AppContainer) {
 
     suspend fun writableTarget(preferred: String?): TaskList? = io {
         val lists = store.lists().filter { it.canWrite }
-        lists.firstOrNull { it.href == preferred && preferred != AppPrefs.ALL } ?: lists.firstOrNull { it.href == c.prefs.lastList } ?: lists.firstOrNull()
+        lists.firstOrNull { it.href == preferred } ?: lists.firstOrNull { it.href == c.prefs.lastList } ?: lists.firstOrNull()
     }
 
     // MARK: Einträge
@@ -71,6 +73,7 @@ class Repository(private val c: AppContainer) {
         due: ICalDate? = null,
         notes: String = "",
         parentUid: String? = null,
+        priority: Int = 0,
     ): TodoItem? {
         val trimmed = title.trim()
         if (trimmed.isEmpty()) return null
@@ -78,7 +81,7 @@ class Repository(private val c: AppContainer) {
             val list = store.list(listHref) ?: return@io null
             if (!list.canWrite) return@io null
             val base = TodoItem(
-                title = trimmed, notes = notes, color = color, due = due, parentUID = parentUid,
+                title = trimmed, notes = notes, color = color, due = due, parentUID = parentUid, priority = priority,
                 planwerk = if (list.isPlanwerkLinked) PlanwerkMeta() else null,
             )
             store.save(base, listHref).item
@@ -106,8 +109,22 @@ class Repository(private val c: AppContainer) {
             val rec = store.record(uid, listHref) ?: return@io
             val item = rec.item
             if (item.isCompleted == done) return@io
+            // Wiederkehrend (wie To Do): dieser Eintrag wird erledigt, ein neuer mit dem nächsten Termin entsteht.
+            val due = item.due
+            val nextDay = if (done && due != null) item.recurrence?.let { Recurrence.next(it, due.localDay(java.time.ZoneId.systemDefault())) } else null
+            if (nextDay != null && due != null) {
+                store.save(
+                    item.copy(
+                        uid = java.util.UUID.randomUUID().toString().lowercase(), due = Recurrence.shift(due, nextDay),
+                        start = null, created = null, lastModified = null, attachments = emptyList(),
+                        reminders = item.reminders.filter { it.trigger is app.listwerk.core.ReminderTrigger.Relative }.map { it.copy() },
+                    ),
+                    listHref,
+                )
+            }
             store.save(
                 item.copy(
+                    recurrence = if (nextDay != null) null else item.recurrence,
                     isCompleted = done,
                     completedAt = if (done) java.time.Instant.now() else null,
                     percentComplete = if (done) 100 else 0,
@@ -148,7 +165,8 @@ class Repository(private val c: AppContainer) {
     // MARK: Listen
 
     suspend fun createList(name: String, color: String?): TaskList? {
-        val home = account()?.homePath ?: return null
+        // Ohne Konto entstehen lokale Listen; sie werden beim Anmelden übernommen (Store.adoptLocalLists).
+        val home = account()?.homePath ?: Store.LOCAL_HOME
         val created = io { store.createList(name.trim(), color, home) }
         changed(delayMs = 800)
         return created
