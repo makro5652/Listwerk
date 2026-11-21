@@ -276,10 +276,12 @@ public struct CalDAVClient: CalDAVService {
         _ = try await send(req, accept: [200, 201])
     }
 
-    public func updateCollection(href: String, name: String?, color: String?) async throws {
+    public func updateCollection(href: String, name: String?, color: String?, order: Double? = nil) async throws {
         var props = ""
         if let name { props += "<d:displayname>\(XMLText.escape(name))</d:displayname>" }
         if let color { props += "<a:calendar-color>\(XMLText.escape(color))</a:calendar-color>" }
+        // Reihenfolge wie Apple Kalender und Nextcloud (ganzzahlig).
+        if let order { props += "<a:calendar-order>\(Int(order.rounded()))</a:calendar-order>" }
         guard !props.isEmpty else { return }
         let req = try request("PROPPATCH", href, body: """
         <?xml version="1.0" encoding="utf-8"?><d:propertyupdate xmlns:d="DAV:" xmlns:a="http://apple.com/ns/ical/">

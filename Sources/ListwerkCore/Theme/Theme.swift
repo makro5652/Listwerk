@@ -60,7 +60,7 @@ public enum ThemeCatalog {
 
     /// Alle mitgelieferten Designs (ohne „System“, das je nach Gerät Hell oder Dunkel wählt).
     public static let all: [Theme] = {
-        let order = ["papier", "graphit", "catppuccin-latte", "catppuccin-frappe", "catppuccin-macchiato", "catppuccin-mocha"]
+        let order = ["papier", "graphit", "catppuccin-latte", "catppuccin-frappe", "catppuccin-macchiato", "catppuccin-mocha", "aqua"]
         let themes = json("themes").compactMap { try? JSONDecoder().decode(Theme.self, from: $0) }
         return themes.sorted { (order.firstIndex(of: $0.id) ?? 99) < (order.firstIndex(of: $1.id) ?? 99) }
     }()

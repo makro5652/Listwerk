@@ -81,6 +81,6 @@ public protocol CalDAVService: Sendable {
     func delete(href: String, etag: String?) async throws -> DeleteResult
     func move(from: String, to: String) async throws -> MoveResult
     func makeCollection(href: String, name: String, color: String?) async throws
-    func updateCollection(href: String, name: String?, color: String?) async throws
+    func updateCollection(href: String, name: String?, color: String?, order: Double?) async throws
     func deleteCollection(href: String) async throws
 }

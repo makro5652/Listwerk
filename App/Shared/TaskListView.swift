@@ -12,13 +12,13 @@ struct TaskListView: View {
             ForEach(model.topLevel) { rec in
                 VStack(alignment: .leading, spacing: 0) {
                     TaskRow(rec: rec)
-                    ForEach(model.children(of: rec.item.uid)) { child in
+                    ForEach(model.children(of: rec)) { child in
                         TaskRow(rec: child).padding(.leading, 28)
                     }
                 }
                 .tag(rec.id)
                 .draggable("\(rec.listHref)\n\(rec.item.uid)")
-                .contextMenu { menu(for: rec) }
+                .contextMenu { TaskContextMenu(rec: rec) }
                 .swipeActions(edge: .trailing) {
                     Button("Löschen", role: .destructive) { model.delete(rec) }
                 }
@@ -27,9 +27,11 @@ struct TaskListView: View {
             .onMove { offsets, dest in model.reorder(from: offsets, to: dest) }
         }
         .scrollContentBackground(.hidden)
-        .background(theme.color(\.background))
+        .background(ThemeBackground())
         .navigationTitle(title)
+        .searchable(text: $model.searchText, prompt: "Suchen")
         .toolbar {
+            ToolbarItem { SortMenu() }
             ToolbarItem {
                 Toggle(isOn: $model.showCompleted) { Label("Erledigte zeigen", systemImage: "checkmark.circle") }
             }
@@ -37,7 +39,7 @@ struct TaskListView: View {
         .safeAreaInset(edge: .bottom) {
             HStack {
                 Image(systemName: "plus.circle.fill").foregroundStyle(theme.color(\.accent))
-                TextField(canAdd ? "Neuer Eintrag" : "Liste wählen, um Einträge anzulegen", text: $newTitle)
+                TextField(canAdd ? "Neuer Eintrag in „\(model.entryTarget?.name ?? "")“" : "Liste wählen, um Einträge anzulegen", text: $newTitle)
                     .textFieldStyle(.plain)
                     .disabled(!canAdd)
                     .onSubmit {
@@ -50,19 +52,8 @@ struct TaskListView: View {
         }
     }
 
-    private var title: String { model.currentList?.name ?? "Alle offenen" }
-    private var canAdd: Bool { model.currentList?.canWrite == true }
-
-    @ViewBuilder
-    private func menu(for rec: TaskRecord) -> some View {
-        Button(rec.item.isCompleted ? "Wieder öffnen" : "Erledigt") { model.toggleDone(rec) }
-        Menu("Verschieben nach …") {
-            ForEach(model.lists.filter { $0.href != rec.listHref && $0.canWrite }) { l in
-                Button(l.name) { model.move(rec, to: l.href) }
-            }
-        }
-        Button("Löschen", role: .destructive) { model.delete(rec) }
-    }
+    private var title: String { model.selection == .all ? "Alle" : model.selectionTitle }
+    private var canAdd: Bool { model.entryTarget != nil && model.selection != .completed }
 }
 
 struct TaskRow: View {
@@ -78,8 +69,7 @@ struct TaskRow: View {
                     .frame(width: 4, height: 28)
             }
             Button { model.toggleDone(rec) } label: {
-                Image(systemName: rec.item.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(rec.item.isCompleted ? theme.color(\.success) : theme.color(\.textSecondary))
+                CheckCircle(done: rec.item.isCompleted, tint: rec.item.isCompleted ? theme.color(\.success) : theme.color(\.textSecondary))
             }
             .buttonStyle(.plain)
             VStack(alignment: .leading, spacing: 2) {
@@ -95,7 +85,9 @@ struct TaskRow: View {
             Spacer()
             if rec.item.priority >= 1 && rec.item.priority <= 4 { Image(systemName: "exclamationmark").foregroundStyle(theme.color(\.warning)) }
             if !rec.item.reminders.isEmpty { Image(systemName: "bell").font(.caption).foregroundStyle(theme.color(\.textSecondary)) }
-            if rec.isDirty { Image(systemName: "arrow.up.circle").font(.caption).foregroundStyle(theme.color(\.textSecondary)) }
+            if rec.item.recurrence != nil { Image(systemName: "repeat").font(.caption).foregroundStyle(theme.color(\.textSecondary)) }
+            if model.isInMyDay(rec) { Image(systemName: "sun.max").font(.caption).foregroundStyle(theme.color(\.textSecondary)) }
+            if rec.isDirty && model.account != nil { Image(systemName: "arrow.up.circle").font(.caption).foregroundStyle(theme.color(\.textSecondary)) }
         }
         .padding(.vertical, 4)
     }

@@ -9,8 +9,10 @@ struct RootView: View {
     var body: some View {
         let theme = model.theme(systemIsDark: scheme == .dark)
         Group {
-            if model.account == nil {
+            if !model.onboarded || model.showLogin {
                 LoginView()
+            } else if model.layout == .todo {
+                TodoRootView()
             } else {
                 NavigationSplitView {
                     SidebarView()
@@ -23,13 +25,13 @@ struct RootView: View {
         }
         .environment(\.theme, theme)
         .tint(theme.color(\.accent))
-        .background(theme.color(\.background))
+        .background(ThemeBackground())
         .preferredColorScheme(model.themeID == ThemeCatalog.systemID ? nil : (theme.isDark ? .dark : .light))
         .alert("Fehler", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(model.errorMessage ?? "") }
         .onChange(of: phase) { _, new in
-            if new == .active { Task { await model.syncNow() } }
+            if new == .active, model.account != nil { Task { await model.syncNow() } }
         }
     }
 }

@@ -13,7 +13,15 @@ struct SidebarView: View {
     var body: some View {
         @Bindable var model = model
         List(selection: $model.selection) {
-            Label("Alle offenen", systemImage: "tray.full").tag(SidebarSelection.all)
+            ForEach(SmartListInfo.all) { s in
+                HStack {
+                    Label { Text(s.selection == .all ? "Alle" : s.name) } icon: { Image(systemName: s.icon).foregroundStyle(s.tint) }
+                    Spacer()
+                    let n = model.smartCount(s.selection)
+                    if n > 0 && s.selection != .completed { Text("\(n)").font(.caption).foregroundStyle(theme.color(\.textSecondary)) }
+                }
+                .tag(s.selection)
+            }
             Section("Listen") {
                 ForEach(model.lists) { list in
                     row(list).tag(SidebarSelection.list(list.href))
@@ -25,9 +33,14 @@ struct SidebarView: View {
                         .contextMenu {
                             Button("Umbenennen …") { renaming = list; renameText = list.name }
                                 .disabled(!list.canWrite)
+                            Button("Nach oben") { model.moveList(list, by: -1) }.disabled(list.href == model.lists.first?.href)
+                            Button("Nach unten") { model.moveList(list, by: 1) }.disabled(list.href == model.lists.last?.href)
+                            Button(model.favoriteList == list.href ? "Favorit entfernen" : "Als Favorit festlegen") { model.toggleFavorite(list) }
+                            Divider()
                             Button("Löschen", role: .destructive) { model.deleteList(list) }
                         }
                 }
+                .onMove { offsets, dest in model.moveLists(from: offsets, to: dest) }
             }
         }
         .scrollContentBackground(.hidden)
@@ -37,9 +50,11 @@ struct SidebarView: View {
             ToolbarItem {
                 Button { creating = true } label: { Label("Neue Liste", systemImage: "plus") }
             }
-            ToolbarItem {
-                Button { Task { await model.syncNow() } } label: {
-                    if model.isSyncing { ProgressView() } else { Label("Abgleichen", systemImage: "arrow.triangle.2.circlepath") }
+            if model.account != nil {
+                ToolbarItem {
+                    Button { Task { await model.syncNow() } } label: {
+                        if model.isSyncing { ProgressView() } else { Label("Abgleichen", systemImage: "arrow.triangle.2.circlepath") }
+                    }
                 }
             }
         }
@@ -66,6 +81,7 @@ struct SidebarView: View {
             Circle().fill(Color(hex: ThemeCatalog.displayHex(stored: list.color ?? theme.colors.accent, in: theme)))
                 .frame(width: 10, height: 10)
             Text(list.name)
+            if model.favoriteList == list.href { Image(systemName: "star.fill").font(.caption).foregroundStyle(.yellow).accessibilityLabel("Favorit") }
             if list.isShared { Image(systemName: "person.2").font(.caption) }
             if list.isPlanwerkLinked { Image(systemName: "link").font(.caption) }
             if !list.canWrite { Image(systemName: "lock").font(.caption) }

@@ -1,0 +1,18 @@
+{
+  "id": "aqua",
+  "name": "Aqua",
+  "isDark": false,
+  "colors": {
+    "background": "#ececec",
+    "sidebar": "#dfe5ed",
+    "surface": "#ffffff",
+    "surfaceElevated": "#f4f6f9",
+    "textPrimary": "#000000",
+    "textSecondary": "#4d4d4d",
+    "accent": "#2f6fd6",
+    "separator": "#bdbdbd",
+    "success": "#2f8f3a",
+    "warning": "#b86a00",
+    "danger": "#c8321e"
+  }
+}

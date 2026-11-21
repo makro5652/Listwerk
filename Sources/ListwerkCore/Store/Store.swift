@@ -208,6 +208,8 @@ public final class Store: @unchecked Sendable {
             }
             for (i, r) in remote.enumerated() {
                 let existing = try list(r.href)
+                // Ohne calendar-order vom Server bleibt die lokale Reihenfolge; neue Listen kommen ans Ende.
+                let position = r.order ?? existing?.position ?? Double(1000 + i)
                 if let existing, existing.pendingProps {
                     // Lokale Umbenennung/Färbung hat Vorrang, bis sie hochgeladen ist.
                     try db.execute("UPDATE task_list SET can_write=?, is_shared=?, owner=? WHERE href=?",
@@ -220,7 +222,7 @@ public final class Store: @unchecked Sendable {
                 ON CONFLICT(href) DO UPDATE SET name=excluded.name, color=excluded.color, position=excluded.position,
                     can_write=excluded.can_write, is_shared=excluded.is_shared, owner=excluded.owner,
                     pending_create=0
-                """, [.text(r.href), .text(r.name), .opt(r.color), .double(r.order ?? Double(i)),
+                """, [.text(r.href), .text(r.name), .opt(r.color), .double(position),
                       .bool(r.canWrite), .bool(r.isShared), .opt(r.ownerName)])
             }
         }
@@ -239,9 +241,42 @@ public final class Store: @unchecked Sendable {
         return try list(href)!
     }
 
+    /// Pseudo-Heimatpfad für Listen ohne Konto; beim Anmelden ersetzt [adoptLocalLists] ihn durch den echten.
+    public static let localHome = "local:/"
+
+    /// Übernimmt die ohne Konto angelegten Listen ins Konto unter `homePath`. `MKCALENDAR` und das Hochladen der
+    /// Einträge folgen beim nächsten Abgleich. Gibt alte → neue Href zurück (für gemerkte Auswahlen).
+    @discardableResult
+    public func adoptLocalLists(homePath: String) throws -> [String: String] {
+        try db.transaction {
+            var moved: [String: String] = [:]
+            for l in try allListsIncludingPending() where l.href.hasPrefix(Self.localHome) {
+                let slug = String(l.href.dropFirst(Self.localHome.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                var href = homePath + slug + "/"
+                var n = 2
+                while try list(href) != nil { href = homePath + slug + "-\(n)/"; n += 1 }
+                // Einträge folgen über ON UPDATE CASCADE; sie haben noch keine Server-Href und sind dirty.
+                try db.execute("UPDATE task_list SET href=?, pending_create=1, pending_delete=0, pending_props=0 WHERE href=?",
+                               [.text(href), .text(l.href)])
+                moved[l.href] = href
+            }
+            return moved
+        }
+    }
+
     public func updateList(_ href: String, name: String? = nil, color: String?? = nil) throws {
         if let name { try db.execute("UPDATE task_list SET name=?, pending_props=1 WHERE href=?", [.text(name), .text(href)]) }
         if let color { try db.execute("UPDATE task_list SET color=?, pending_props=1 WHERE href=?", [.opt(color), .text(href)]) }
+    }
+
+    /// Neue Reihenfolge der Listen (Ziehen in der Seitenleiste). Wird als `calendar-order` hochgeladen.
+    public func reorderLists(_ hrefs: [String]) throws {
+        try db.transaction {
+            for (i, href) in hrefs.enumerated() {
+                try db.execute("UPDATE task_list SET position=?, pending_props=1 WHERE href=? AND position<>?",
+                               [.double(Double(i + 1)), .text(href), .double(Double(i + 1))])
+            }
+        }
     }
 
     public func setListPosition(_ href: String, _ position: Double) throws {

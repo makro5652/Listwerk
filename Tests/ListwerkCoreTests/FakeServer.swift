@@ -11,6 +11,7 @@ final class FakeServer: CalDAVService, @unchecked Sendable {
         var items: [String: Resource] = [:]
         var tombstones: [String: Int] = [:]
         var canWrite = true
+        var order: Double?
     }
 
     private let lock = NSLock()
@@ -113,7 +114,7 @@ final class FakeServer: CalDAVService, @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         try log("listCollections")
         return collections.sorted { $0.key < $1.key }.enumerated().map { i, kv in
-            RemoteList(href: kv.key, name: kv.value.name, color: kv.value.color, order: Double(i),
+            RemoteList(href: kv.key, name: kv.value.name, color: kv.value.color, order: kv.value.order ?? Double(i),
                        ctag: "ctag-\(rev)", syncToken: "tok-\(rev)", canWrite: kv.value.canWrite)
         }
     }
@@ -203,11 +204,12 @@ final class FakeServer: CalDAVService, @unchecked Sendable {
         rev += 1
     }
 
-    func updateCollection(href: String, name: String?, color: String?) async throws {
+    func updateCollection(href: String, name: String?, color: String?, order: Double?) async throws {
         lock.lock(); defer { lock.unlock() }
         try log("proppatch \(href)")
         if let name { collections[href]?.name = name }
         if let color { collections[href]?.color = color }
+        if let order { collections[href]?.order = order }
         rev += 1
     }
 

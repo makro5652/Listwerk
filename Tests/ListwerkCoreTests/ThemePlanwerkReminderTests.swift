@@ -4,7 +4,7 @@ import XCTest
 final class ThemeTests: XCTestCase {
     func testAllThemesLoad() {
         XCTAssertEqual(ThemeCatalog.all.map(\.id),
-                       ["papier", "graphit", "catppuccin-latte", "catppuccin-frappe", "catppuccin-macchiato", "catppuccin-mocha"])
+                       ["papier", "graphit", "catppuccin-latte", "catppuccin-frappe", "catppuccin-macchiato", "catppuccin-mocha", "aqua"])
         XCTAssertEqual(ThemeCatalog.all.filter(\.isDark).count, 4)
     }
 

@@ -44,6 +44,7 @@ public actor SyncEngine {
         }
         var report = SyncReport()
 
+        try store.adoptLocalLists(homePath: home!)  // ohne Konto angelegte Listen (normalerweise schon beim Anmelden übernommen)
         try await pushListChanges(&report)
         try await pushMoves(&report)
 
@@ -78,7 +79,7 @@ public actor SyncEngine {
                     }
                     try store.clearListFlags(l.href)
                 } else if l.pendingProps {
-                    try await service.updateCollection(href: l.href, name: l.name, color: l.color)
+                    try await service.updateCollection(href: l.href, name: l.name, color: l.color, order: l.position)
                     try store.clearListFlags(l.href)
                 }
             } catch DAVError.unauthorized {

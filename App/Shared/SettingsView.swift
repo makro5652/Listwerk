@@ -20,6 +20,10 @@ struct SettingsView: View {
         @Bindable var model = model
         Form {
             Section("Darstellung") {
+                Picker("Ansicht", selection: $model.layout) {
+                    ForEach(AppLayout.allCases) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.segmented)
                 Picker("Design", selection: $model.themeID) {
                     Text("System (Papier / Graphit)").tag(ThemeCatalog.systemID)
                     ForEach(ThemeCatalog.all) { Text($0.name).tag($0.id) }
@@ -27,6 +31,10 @@ struct SettingsView: View {
                 ThemePreview(theme: model.theme(systemIsDark: scheme == .dark))
             }
             Section("Nextcloud") {
+                if model.account == nil {
+                    Text("Ohne Konto: Listen liegen nur auf diesem Mac.").foregroundStyle(.secondary)
+                    Button("Mit Nextcloud anmelden und abgleichen") { model.showLogin = true }
+                }
                 if let a = model.account {
                     LabeledContent("Server", value: a.serverURL.host ?? a.serverURL.absoluteString)
                     LabeledContent("Konto", value: a.loginName)

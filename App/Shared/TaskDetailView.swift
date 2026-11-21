@@ -33,7 +33,17 @@ struct TaskDetailView: View {
     var body: some View {
         Form {
             Section {
-                TextField("Titel", text: $draft.title)
+                HStack {
+                    TextField("Titel", text: $draft.title)
+                    let important = (1...4).contains(draft.priority)
+                    Button { draft.priority = important ? 0 : 1 } label: {
+                        Image(systemName: important ? "star.fill" : "star").foregroundStyle(important ? theme.color(\.accent) : theme.color(\.textSecondary))
+                    }
+                    .buttonStyle(.plain).help("Wichtig")
+                }
+                Toggle(isOn: Binding(get: { model.isInMyDay(rec) }, set: { _ in model.toggleMyDay(rec.item.uid) })) {
+                    Label("Mein Tag", systemImage: "sun.max")
+                }
                 TextField("Link", text: Binding(get: { draft.url ?? "" }, set: { draft.url = $0.isEmpty ? nil : $0 }))
                     .autocorrectionDisabled()
                 ZStack(alignment: .topLeading) {
@@ -58,6 +68,25 @@ struct TaskDetailView: View {
                     ), displayedComponents: due.isAllDay ? [.date] : [.date, .hourAndMinute])
                 }
                 remindersSection
+                Picker(selection: Binding(
+                    get: { draft.recurrence ?? "" },
+                    set: { rule in
+                        draft.recurrence = rule.isEmpty ? nil : rule
+                        // Wiederholung braucht einen Termin; wie in To Do: ab heute.
+                        if !rule.isEmpty, draft.due == nil { draft.due = ICalDate(date: Date(), allDay: true) }
+                    }
+                )) {
+                    Text("Nicht wiederholen").tag("")
+                    Text("Täglich").tag(Recurrence.daily)
+                    Text("Werktags").tag(Recurrence.weekdays)
+                    Text("Wöchentlich").tag(Recurrence.weekly)
+                    Text("Monatlich").tag(Recurrence.monthly)
+                    Text("Jährlich").tag(Recurrence.yearly)
+                    // Fremde Regel (z. B. aus Thunderbird) bleibt sichtbar und erhalten.
+                    if let r = draft.recurrence, ![Recurrence.daily, Recurrence.weekdays, Recurrence.weekly, Recurrence.monthly, Recurrence.yearly].contains(r) {
+                        Text("Eigene Regel: \(r)").tag(r)
+                    }
+                } label: { Label("Wiederholen", systemImage: "repeat") }
             }
 
             Section("Eigenschaften") {
@@ -84,7 +113,7 @@ struct TaskDetailView: View {
             Section("Farbe") { colorPicker }
 
             Section("Unteraufgaben") {
-                ForEach(model.children(of: rec.item.uid)) { TaskRow(rec: $0) }
+                ForEach(model.children(of: rec)) { TaskRow(rec: $0) }
                 HStack {
                     TextField("Unteraufgabe hinzufügen", text: $newSubtask)
                         .onSubmit {
@@ -104,7 +133,7 @@ struct TaskDetailView: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
-        .background(theme.color(\.background))
+        .background(ThemeBackground())
         .disabled(!editable)
         .navigationTitle(draft.title.isEmpty ? "Eintrag" : draft.title)
         .onChange(of: draft) { _, new in model.save(new, in: rec.listHref) }

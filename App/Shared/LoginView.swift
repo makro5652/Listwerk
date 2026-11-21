@@ -32,6 +32,18 @@ struct LoginView: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(server.trimmingCharacters(in: .whitespaces).isEmpty || busy)
+            if !model.onboarded {
+                // Erststart: auch ganz ohne Konto nutzbar; eine spätere Anmeldung lädt alles hoch.
+                Button("Ohne Anmeldung nutzen") { model.skipLogin() }.buttonStyle(.borderless)
+                Text("Alles bleibt auf diesem Mac. Meldest du dich später an, werden deine Listen hochgeladen und abgeglichen.")
+                    .font(.footnote).multilineTextAlignment(.center).frame(maxWidth: 420)
+                    .foregroundStyle(theme.color(\.textSecondary))
+            } else {
+                Button("Abbrechen") { model.showLogin = false }.buttonStyle(.borderless)
+                Text("Deine bisherigen Listen und Aufgaben werden nach der Anmeldung in die Nextcloud hochgeladen.")
+                    .font(.footnote).multilineTextAlignment(.center).frame(maxWidth: 420)
+                    .foregroundStyle(theme.color(\.textSecondary))
+            }
             if let status = model.statusMessage {
                 Text(status).font(.footnote).foregroundStyle(theme.color(\.textSecondary))
             }

@@ -3,6 +3,16 @@
 To-do-App mit Nextcloud-Synchronisation (CalDAV/VTODO) für macOS und iPad, mit Anbindung an Planwerk.
 Stand: Version 0.1.0, Android ist bewusst zurückgestellt.
 
+## Neu in 0.2.0 (macOS/iPad, gleiche Funktionen wie Android 0.2.0)
+
+- **Ohne Anmeldung nutzbar:** Beim ersten Start „Ohne Anmeldung nutzen“. Listen liegen dann unter `local:/…` nur auf dem
+  Gerät. Bei einer späteren Anmeldung (Einstellungen → „Mit Nextcloud anmelden“) übernimmt `Store.adoptLocalLists` sie
+  ins Konto; der nächste Abgleich legt die Listen an und lädt alle Einträge hoch (Tests in `LocalModeRecurrenceTests`).
+- **Ansicht „Wie Microsoft To Do“** (Einstellungen → Darstellung): Seitenleiste mit farbigen Symbolen, Listenansicht auf
+  Listenfarbe mit großem Titel, Karten mit Kreis und Stern, „Aufgabe hinzufügen“, einklappbarer Abschnitt „Erledigt“.
+- **In beiden Ansichten:** Mein Tag, Wichtig, Geplant, Alle, Erledigt; Suche; Sortieren; Stern; Wiederholen (täglich,
+  werktags, wöchentlich, monatlich, jährlich; Erledigen legt den nächsten Termin an). „Mein Tag“ gilt nur auf dem Gerät.
+
 ## Aufbau
 
 - `Sources/ListwerkCore`: plattformunabhängiger Kern (iCalendar-Codec, SQLite-Speicher, CalDAV-Client,
