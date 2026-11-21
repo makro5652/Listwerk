@@ -31,6 +31,11 @@ Stand: Version 0.1.0, Android ist bewusst zurückgestellt.
 - `shared/`: Themes, Paletten und iCalendar-Fixtures zur späteren Wiederverwendung (Android).
 - `docs/DECISIONS.md`: getroffene Entscheidungen und Abweichungen von der Spezifikation.
 
+## Am Mac installieren
+
+`scripts/install-mac.sh` baut die App ohne Sandbox und kopiert sie nach /Applications. Die Daten liegen dann in
+`~/Library/Application Support/Listwerk`. Ein Build mit Sandbox sucht sie im Container und startet leer.
+
 ## Am Mac starten
 
 1. Xcode 15.3 oder neuer, `brew install xcodegen`.
