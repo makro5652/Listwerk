@@ -16,7 +16,7 @@ private fun resource(path: String): String =
     ThemeTest::class.java.getResourceAsStream(path)!!.use { String(it.readBytes(), Charsets.UTF_8) }
 
 fun testCatalog(): ThemeCatalog = ThemeCatalog(
-    listOf("papier", "graphit", "catppuccin-latte", "catppuccin-frappe", "catppuccin-macchiato", "catppuccin-mocha")
+    listOf("papier", "graphit", "catppuccin-latte", "catppuccin-frappe", "catppuccin-macchiato", "catppuccin-mocha", "aqua")
         .reversed().map { resource("/themes/$it.json") },
     listOf("catppuccin", "farbkarten").reversed().map { resource("/palettes/$it.json") },
 )
@@ -27,7 +27,7 @@ class ThemeTest {
     @Test
     fun allThemesLoad() {
         assertEquals(
-            listOf("papier", "graphit", "catppuccin-latte", "catppuccin-frappe", "catppuccin-macchiato", "catppuccin-mocha"),
+            listOf("papier", "graphit", "catppuccin-latte", "catppuccin-frappe", "catppuccin-macchiato", "catppuccin-mocha", "aqua"),
             catalog.all.map { it.id },
         )
         assertEquals(4, catalog.all.count { it.isDark })

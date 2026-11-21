@@ -82,7 +82,7 @@ class SyncEngine(
                     }
                     store.clearListFlags(l.href)
                 } else if (l.pendingProps) {
-                    service.updateCollection(l.href, l.name, l.color)
+                    service.updateCollection(l.href, l.name, l.color, l.position)
                     store.clearListFlags(l.href)
                 }
             } catch (e: DavError.Unauthorized) {

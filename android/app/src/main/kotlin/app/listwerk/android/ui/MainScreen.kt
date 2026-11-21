@@ -50,6 +50,8 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.AlertDialog
@@ -164,13 +166,17 @@ fun MainScreen(vm: MainViewModel, onRelogin: () -> Unit) {
     BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } }
 
     val listMap = remember(lists) { lists.orEmpty().associateBy { it.href } }
+    val favorite by vm.startList.collectAsState()
+    var arranging by remember { mutableStateOf(false) }
+    if (arranging) ListOrderDialog(vm, lists.orEmpty(), favorite) { arranging = false }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(drawerContainerColor = colors.sidebar) {
                 DrawerContent(
-                    lists = lists.orEmpty(), counts = counts, smartCounts = smartCounts, selection = selection, planwerkLinked = { it.isPlanwerkLinked },
+                    lists = lists.orEmpty(), counts = counts, smartCounts = smartCounts, selection = selection, favorite = favorite, planwerkLinked = { it.isPlanwerkLinked },
+                    onArrange = { scope.launch { drawerState.close() }; arranging = true },
                     onSelect = { vm.select(it); scope.launch { drawerState.close() } },
                     onNewList = { scope.launch { drawerState.close() }; listDialog = ListDialogMode.Create },
                     onSettings = { scope.launch { drawerState.close() }; vm.screen.value = Screen.SETTINGS },
@@ -179,7 +185,7 @@ fun MainScreen(vm: MainViewModel, onRelogin: () -> Unit) {
         },
     ) {
         Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = screenColor(),
             snackbarHost = { SnackbarHost(snackbar) },
             topBar = {
                 TopAppBar(
@@ -237,7 +243,7 @@ fun MainScreen(vm: MainViewModel, onRelogin: () -> Unit) {
                             )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = screenColor()),
                 )
             },
             bottomBar = {
@@ -357,7 +363,9 @@ private fun DrawerContent(
     counts: Map<String, Int>,
     smartCounts: Map<String, Int>,
     selection: String,
+    favorite: String,
     planwerkLinked: (TaskList) -> Boolean,
+    onArrange: () -> Unit,
     onSelect: (String) -> Unit,
     onNewList: () -> Unit,
     onSettings: () -> Unit,
@@ -380,7 +388,12 @@ private fun DrawerContent(
         items(lists, key = { it.href }) { l ->
             NavigationDrawerItem(
                 icon = { ColorDot(l.color?.let { colors.entryColor(it) } ?: MaterialTheme.colorScheme.outline, 14.dp) },
-                label = { Text(l.name, maxLines = 1) },
+                label = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(l.name, Modifier.weight(1f, fill = false), maxLines = 1)
+                        if (l.href == favorite) Icon(Icons.Default.Star, stringResource(R.string.favorite_list), Modifier.padding(start = 4.dp).size(14.dp), tint = FavoriteColor)
+                    }
+                },
                 selected = selection == l.href,
                 badge = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -399,6 +412,10 @@ private fun DrawerContent(
             NavigationDrawerItem(
                 icon = { Icon(Icons.Default.Add, null) }, label = { Text(stringResource(R.string.new_list)) },
                 selected = false, onClick = onNewList,
+            )
+            if (lists.size > 1) NavigationDrawerItem(
+                icon = { Icon(Icons.Default.SwapVert, null) }, label = { Text(stringResource(R.string.arrange_lists)) },
+                selected = false, onClick = onArrange,
             )
             NavigationDrawerItem(
                 icon = { Icon(Icons.Default.Settings, null) }, label = { Text(stringResource(R.string.settings)) },

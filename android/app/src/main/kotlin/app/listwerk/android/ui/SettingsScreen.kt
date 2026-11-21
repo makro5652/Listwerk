@@ -87,7 +87,7 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit) {
     var confirmLogout by remember { mutableStateOf(false) }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = screenColor(),
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings)) },

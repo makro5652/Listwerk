@@ -194,6 +194,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setStartList(value: String) { startList.value = value; prefs.startList = value }
 
+    /** Favorit = feste Startliste; nochmal tippen hebt ihn auf. */
+    fun toggleFavorite(href: String) = setStartList(if (startList.value == href) AppPrefs.START_LAST else href)
+
+    fun moveList(list: TaskList, by: Int) {
+        val order = lists.value.orEmpty().map { it.href }.toMutableList()
+        val i = order.indexOf(list.href)
+        if (i < 0 || i + by !in order.indices) return
+        order.add(i + by, order.removeAt(i))
+        viewModelScope.launch { repo.reorderLists(order) }
+    }
+
     fun setFocusInput(on: Boolean) { focusInput.value = on; prefs.focusInputOnStart = on }
 
     fun setShowCompleted(on: Boolean) { showCompleted.value = on; prefs.showCompleted = on }

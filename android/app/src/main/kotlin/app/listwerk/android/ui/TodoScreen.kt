@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material.icons.filled.WbSunny
@@ -159,9 +160,12 @@ private fun TodoHome(vm: MainViewModel, snackbar: SnackbarHostState, onOpen: (St
     val signedIn by vm.signedIn.collectAsState()
     val sync by vm.syncStatus.collectAsState()
     var newList by remember { mutableStateOf(false) }
+    val favorite by vm.startList.collectAsState()
+    var arranging by remember { mutableStateOf(false) }
+    if (arranging) ListOrderDialog(vm, lists.orEmpty(), favorite) { arranging = false }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = screenColor(),
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
@@ -174,9 +178,10 @@ private fun TodoHome(vm: MainViewModel, snackbar: SnackbarHostState, onOpen: (St
                     IconButton(onClick = { vm.select(AppPrefs.ALL); vm.search.value = " "; onOpen(AppPrefs.ALL) }) {
                         Icon(Icons.Default.Search, stringResource(R.string.search))
                     }
+                    if (lists.orEmpty().size > 1) IconButton(onClick = { arranging = true }) { Icon(Icons.Default.SwapVert, stringResource(R.string.arrange_lists)) }
                     IconButton(onClick = { vm.screen.value = Screen.SETTINGS }) { Icon(Icons.Default.Settings, stringResource(R.string.settings)) }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = screenColor()),
             )
         },
         bottomBar = {
@@ -197,7 +202,7 @@ private fun TodoHome(vm: MainViewModel, snackbar: SnackbarHostState, onOpen: (St
             items(lists.orEmpty(), key = { it.href }) { l ->
                 HomeRow(
                     Icons.AutoMirrored.Filled.List, l.color?.let { colors.entryColor(it) } ?: MaterialTheme.colorScheme.primary,
-                    l.name, counts[l.href]?.takeIf { it > 0 },
+                    l.name, counts[l.href]?.takeIf { it > 0 }, favorite = l.href == favorite,
                 ) { onOpen(l.href) }
             }
         }
@@ -210,14 +215,16 @@ private fun TodoHome(vm: MainViewModel, snackbar: SnackbarHostState, onOpen: (St
 }
 
 @Composable
-private fun HomeRow(icon: ImageVector, tint: Color, name: String, count: Int?, onClick: () -> Unit) {
+private fun HomeRow(icon: ImageVector, tint: Color, name: String, count: Int?, favorite: Boolean = false, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(onClick = onClick).padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, null, tint = tint)
         Spacer(Modifier.width(20.dp))
-        Text(name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(name, Modifier.weight(1f, fill = false), style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (favorite) Icon(Icons.Default.Star, stringResource(R.string.favorite_list), Modifier.padding(start = 6.dp).size(16.dp), tint = FavoriteColor)
+        Spacer(Modifier.weight(1f))
         if (count != null && count > 0) Text(count.toString(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -413,10 +420,10 @@ fun TodoRowView(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = { onToggle(g.rec) }) {
-            Icon(
-                if (item.isCompleted) Icons.Default.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+            CheckMark(
+                item.isCompleted,
+                item.color?.let { colors.entryColor(it) } ?: if (item.isCompleted) colors.success else muted,
                 stringResource(if (item.isCompleted) R.string.action_reopen else R.string.action_complete),
-                tint = item.color?.let { colors.entryColor(it) } ?: if (item.isCompleted) colors.success else muted,
             )
         }
         Column(Modifier.weight(1f).padding(vertical = 8.dp)) {

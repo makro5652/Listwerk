@@ -59,7 +59,7 @@ class ThemeCatalog(themeJson: List<String>, paletteJson: List<String>) {
 
     /** Alle mitgelieferten Designs (ohne „System“, das je nach Gerät Hell oder Dunkel wählt). */
     val all: List<Theme> = run {
-        val order = listOf("papier", "graphit", "catppuccin-latte", "catppuccin-frappe", "catppuccin-macchiato", "catppuccin-mocha")
+        val order = listOf("papier", "graphit", "catppuccin-latte", "catppuccin-frappe", "catppuccin-macchiato", "catppuccin-mocha", "aqua")
         themeJson.mapNotNull { runCatching { json.decodeFromString<Theme>(it) }.getOrNull() }
             .sortedBy { order.indexOf(it.id).let { i -> if (i < 0) 99 else i } }
     }

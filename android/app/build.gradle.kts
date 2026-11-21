@@ -15,8 +15,8 @@ android {
         applicationId = "app.listwerk.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 3
+        versionName = "0.3.0"
         // Nur die Sprachen, die die App tatsächlich mitbringt (Deutsch); schlankere APK.
         resourceConfigurations += listOf("de")
     }

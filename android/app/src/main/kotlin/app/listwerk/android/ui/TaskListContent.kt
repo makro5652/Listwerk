@@ -257,10 +257,10 @@ fun TaskRowView(
                 .background(item.color?.let { colors.entryColor(it) } ?: androidx.compose.ui.graphics.Color.Transparent),
         )
         IconButton(onClick = { onToggle(rec) }) {
-            Icon(
-                if (item.isCompleted) Icons.Default.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
-                contentDescription = stringResource(if (item.isCompleted) R.string.action_reopen else R.string.action_complete),
-                tint = if (item.isCompleted) colors.success else MaterialTheme.colorScheme.onSurfaceVariant,
+            CheckMark(
+                item.isCompleted,
+                if (item.isCompleted) colors.success else MaterialTheme.colorScheme.onSurfaceVariant,
+                stringResource(if (item.isCompleted) R.string.action_reopen else R.string.action_complete),
             )
         }
         Column(Modifier.weight(1f).padding(vertical = 6.dp)) {

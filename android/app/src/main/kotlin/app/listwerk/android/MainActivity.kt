@@ -20,6 +20,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import app.listwerk.android.data.AppPrefs
 import app.listwerk.android.ui.ListwerkTheme
+import app.listwerk.android.ui.isAqua
+import app.listwerk.android.ui.listwerk
+import app.listwerk.android.ui.pinstripes
 import app.listwerk.android.ui.TodoScreen
 import app.listwerk.android.ui.LoginScreen
 import app.listwerk.android.ui.MainScreen
@@ -52,7 +55,11 @@ class MainActivity : ComponentActivity() {
             val screen by vm.screen.collectAsState()
             val layout by vm.layout.collectAsState()
             ListwerkTheme(container.themes, themeId) {
-                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                val aqua = MaterialTheme.listwerk.isAqua
+                Surface(
+                    Modifier.fillMaxSize().pinstripes(aqua, MaterialTheme.colorScheme.background),
+                    color = if (aqua) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.background,
+                ) {
                     when {
                         !onboarded -> LoginScreen(vm, onBack = null)
                         screen == Screen.LOGIN -> {

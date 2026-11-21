@@ -180,6 +180,11 @@ class Repository(private val c: AppContainer) {
         changed(delayMs = 800)
     }
 
+    suspend fun reorderLists(hrefs: List<String>) {
+        io { store.reorderLists(hrefs) }
+        changed(delayMs = 800)
+    }
+
     suspend fun deleteList(href: String) {
         io { store.deleteList(href) }
         changed(delayMs = 800)

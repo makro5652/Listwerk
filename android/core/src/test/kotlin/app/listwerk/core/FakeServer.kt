@@ -8,7 +8,7 @@ import java.time.Instant
  */
 class FakeServer : CalDAVService {
     class Resource(val ics: String, val etag: String, val modRev: Int)
-    class Collection(var name: String, var color: String? = null, var canWrite: Boolean = true) {
+    class Collection(var name: String, var color: String? = null, var canWrite: Boolean = true, var order: Double? = null) {
         val items = sortedMapOf<String, Resource>()
         val tombstones = mutableMapOf<String, Int>()
     }
@@ -97,7 +97,7 @@ class FakeServer : CalDAVService {
     override suspend fun listCollections(home: String): List<RemoteList> {
         log("listCollections")
         return collections.entries.mapIndexed { i, (href, c) ->
-            RemoteList(href, c.name, c.color, i.toDouble(), "ctag-$rev", "tok-$rev", c.canWrite)
+            RemoteList(href, c.name, c.color, c.order ?: i.toDouble(), "ctag-$rev", "tok-$rev", c.canWrite)
         }
     }
 
@@ -178,8 +178,9 @@ class FakeServer : CalDAVService {
         rev++
     }
 
-    override suspend fun updateCollection(href: String, name: String?, color: String?) {
+    override suspend fun updateCollection(href: String, name: String?, color: String?, order: Double?) {
         log("proppatch $href")
+        if (order != null) collections[href]?.order = order
         if (name != null) collections[href]?.name = name
         if (color != null) collections[href]?.color = color
         rev++

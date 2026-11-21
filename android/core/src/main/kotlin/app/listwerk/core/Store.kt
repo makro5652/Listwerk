@@ -75,7 +75,7 @@ class Store(private val backend: StoreBackend, private val zone: () -> ZoneId = 
                 }
                 backend.putList(
                     (existing ?: TaskList(r.href, r.name)).copy(
-                        name = r.name, color = r.color, position = r.order ?: i.toDouble(),
+                        name = r.name, color = r.color, position = r.order ?: existing?.position ?: i.toDouble(),
                         canWrite = r.canWrite, isShared = r.isShared, ownerName = r.ownerName,
                         pendingCreate = false,
                     ).toRow(),
@@ -127,6 +127,17 @@ class Store(private val backend: StoreBackend, private val zone: () -> ZoneId = 
     fun setListPosition(href: String, position: Double) = write {
         list(href)?.let { backend.putList(it.copy(position = position).toRow()) }
         Unit
+    }
+
+    /** Neue Reihenfolge der Seitenleiste; geänderte Positionen werden beim Abgleich als `calendar-order` hochgeladen. */
+    fun reorderLists(hrefs: List<String>) = write {
+        backend.transaction {
+            for ((i, href) in hrefs.withIndex()) {
+                val l = list(href) ?: continue
+                val pos = (i + 1).toDouble()
+                if (l.position != pos) backend.putList(l.copy(position = pos, pendingProps = l.pendingProps || !l.href.startsWith(LOCAL_HOME)).toRow())
+            }
+        }
     }
 
     fun setPlanwerkLinked(href: String, linked: Boolean) = write {

@@ -106,7 +106,7 @@ interface CalDAVService {
     suspend fun delete(href: String, etag: String?): DeleteResult
     suspend fun move(from: String, to: String): MoveResult
     suspend fun makeCollection(href: String, name: String, color: String?)
-    suspend fun updateCollection(href: String, name: String?, color: String?)
+    suspend fun updateCollection(href: String, name: String?, color: String?, order: Double? = null)
     suspend fun deleteCollection(href: String)
 }
 
@@ -434,10 +434,11 @@ class CalDAVClient(
         send(req, setOf(200, 201))
     }
 
-    override suspend fun updateCollection(href: String, name: String?, color: String?) {
+    override suspend fun updateCollection(href: String, name: String?, color: String?, order: Double?) {
         var props = ""
         if (name != null) props += "<d:displayname>${XmlText.escape(name)}</d:displayname>"
         if (color != null) props += "<a:calendar-color>${XmlText.escape(color)}</a:calendar-color>"
+        if (order != null) props += "<a:calendar-order>${order.toInt()}</a:calendar-order>"
         if (props.isEmpty()) return
         val req = request(
             "PROPPATCH", href,

@@ -180,4 +180,10 @@
     <string name="repeat_weekly">Wöchentlich</string>
     <string name="repeat_monthly">Monatlich</string>
     <string name="repeat_yearly">Jährlich</string>
+    <string name="arrange_lists">Listen ordnen</string>
+    <string name="favorite_list">Favorit</string>
+    <string name="favorite_hint">Die Favoritenliste (Stern) öffnet sich beim Start.</string>
+    <string name="move_up">Nach oben</string>
+    <string name="move_down">Nach unten</string>
+    <string name="finish">Fertig</string>
 </resources>
