@@ -515,4 +515,35 @@ final class AppModel {
     }
 
     func disconnectMSTodo() { CredentialStore.delete(account: "mstodo-refresh") }
+
+    // MARK: Sichern und Drucken
+
+    var homeForNewLists: String { account?.homePath ?? Store.localHome }
+
+    func importBackup(from url: URL) -> String {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        do {
+            let n = try store.importBackup(Data(contentsOf: url), homePath: homeForNewLists)
+            reloadAll()
+            scheduleSync()
+            return "\(n.lists) Liste(n), \(n.tasks) Eintrag/Einträge wiederhergestellt."
+        } catch {
+            return "Fehler: \(error.localizedDescription)"
+        }
+    }
+
+    /// Alle Listen, nur offene Einträge: zum Ausdrucken und Abhaken.
+    func pdfAllLists() -> Data {
+        PDFExport.make(lists.map { l in
+            let all = (try? store.tasks(inList: l.href)) ?? []
+            return .init(title: l.name, rows: PDFExport.rows(all, tops: all.filter { $0.item.parentUID == nil }, includeDone: false))
+        })
+    }
+
+    /// Die gerade angezeigte Liste bzw. Ansicht, wie sie zu sehen ist.
+    func pdfCurrentView() -> Data {
+        PDFExport.make([.init(title: selectionTitle,
+                              rows: PDFExport.rows(records, tops: topLevel, includeDone: showCompleted || selection == .completed))])
+    }
 }

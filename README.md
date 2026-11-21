@@ -3,6 +3,14 @@
 To-do-App mit Nextcloud-Synchronisation (CalDAV/VTODO) für macOS und iPad, mit Anbindung an Planwerk.
 Stand: Version 0.1.0, Android ist bewusst zurückgestellt.
 
+## Neu in 0.3.0 (macOS/iPad)
+
+- **Sichern und wiederherstellen** (Einstellungen → Sichern und Drucken): alle Listen als unverschlüsselte JSON-Datei,
+  Einträge darin als iCalendar-Text (verlustfrei). Der Import ergänzt gleichnamige Listen und aktualisiert Einträge mit
+  gleicher UID; gelöscht wird nichts, ein zweiter Import verdoppelt nichts (`Store.exportBackup`/`importBackup`).
+- **PDF zum Ausdrucken und Abhaken:** Drucker-Knopf in der Werkzeugleiste (aktuelle Ansicht) oder in den Einstellungen
+  (alle Listen, nur offene Einträge, je Liste eine A4-Seite). Android hat beides noch nicht.
+
 ## Neu in 0.2.0 (macOS/iPad, gleiche Funktionen wie Android 0.2.0)
 
 - **Ohne Anmeldung nutzbar:** Beim ersten Start „Ohne Anmeldung nutzen“. Listen liegen dann unter `local:/…` nur auf dem

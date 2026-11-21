@@ -20,7 +20,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.listwerk.mac
         PRODUCT_NAME: Listwerk
-        MARKETING_VERSION: "0.2.0"
+        MARKETING_VERSION: "0.3.0"
         CURRENT_PROJECT_VERSION: "1"
         ENABLE_HARDENED_RUNTIME: YES
         GENERATE_INFOPLIST_FILE: YES
@@ -42,7 +42,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.listwerk.ipad
         PRODUCT_NAME: Listwerk
-        MARKETING_VERSION: "0.2.0"
+        MARKETING_VERSION: "0.3.0"
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "2"   # nur iPad
         GENERATE_INFOPLIST_FILE: YES

@@ -377,21 +377,35 @@ public final class Store: @unchecked Sendable {
             let existing = try record(uid: item.uid, inList: listHref)
             var doc = existing.flatMap { ICalDocument(parsing: $0.ics) } ?? ICalDocument(newWithUID: item.uid)
             doc.apply(item, now: now)
-            let ics = doc.serialized()
-            if let existing {
-                if ics == existing.ics && !existing.isDeleted { return existing }
-                try db.execute("""
-                UPDATE task SET ics=?, title=?, due_key=?, is_done=?, priority=?, sort_order=?, parent_uid=?, color=?,
-                    dirty=1, deleted=0 WHERE list_href=? AND uid=?
-                """, [.text(ics)] + derived(doc.makeItem()) + [.text(listHref), .text(item.uid)])
-            } else {
-                try db.execute("""
-                INSERT INTO task(ics, title, due_key, is_done, priority, sort_order, parent_uid, color, dirty, deleted, list_href, uid)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
-                """, [.text(ics)] + derived(doc.makeItem()) + [.text(listHref), .text(item.uid)])
-            }
-            return try record(uid: item.uid, inList: listHref)!
+            return try write(ics: doc.serialized(), item: doc.makeItem(), existing: existing, inList: listHref)
         }
+    }
+
+    /// Schreibt fertigen iCalendar-Text (z. B. aus einer Sicherung) unverändert, damit fremde Felder erhalten bleiben.
+    @discardableResult
+    func saveICS(_ ics: String, inList listHref: String) throws -> TaskRecord? {
+        guard let doc = ICalDocument(parsing: ics) else { return nil }
+        let item = doc.makeItem()
+        guard !item.uid.isEmpty else { return nil }
+        return try db.transaction {
+            try write(ics: ics, item: item, existing: try record(uid: item.uid, inList: listHref), inList: listHref)
+        }
+    }
+
+    private func write(ics: String, item: TodoItem, existing: TaskRecord?, inList listHref: String) throws -> TaskRecord {
+        if let existing {
+            if ics == existing.ics && !existing.isDeleted { return existing }
+            try db.execute("""
+            UPDATE task SET ics=?, title=?, due_key=?, is_done=?, priority=?, sort_order=?, parent_uid=?, color=?,
+                dirty=1, deleted=0 WHERE list_href=? AND uid=?
+            """, [.text(ics)] + derived(item) + [.text(listHref), .text(item.uid)])
+        } else {
+            try db.execute("""
+            INSERT INTO task(ics, title, due_key, is_done, priority, sort_order, parent_uid, color, dirty, deleted, list_href, uid)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+            """, [.text(ics)] + derived(item) + [.text(listHref), .text(item.uid)])
+        }
+        return try record(uid: item.uid, inList: listHref)!
     }
 
     /// Löscht den Eintrag samt Unteraufgaben. Nie hochgeladene Einträge verschwinden sofort,

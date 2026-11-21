@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import ListwerkCore
 
 struct SettingsView: View {
@@ -9,6 +10,15 @@ struct SettingsView: View {
     @State private var planwerkResult: String?
     @State private var msClientID = ""
     @State private var msResult: String?
+    @State private var exportFile: ExportFile?
+    @State private var exportType = UTType.json
+    @State private var exportName = ""
+    @State private var importing = false
+    @State private var backupResult: String?
+
+    private func export(_ data: Data, _ type: UTType, _ name: String) {
+        exportType = type; exportName = name; exportFile = ExportFile(data)
+    }
 
     private func save() {
         model.planwerkToken = token
@@ -68,11 +78,35 @@ struct SettingsView: View {
                 Text("Einseitig: To Do → Listwerk. Änderungen in To Do überschreiben beim nächsten Import die Listwerk-Einträge.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
+            Section("Sichern und Drucken") {
+                Button("Alle Listen sichern (JSON) …") {
+                    do { export(try model.store.exportBackup(), .json, "Listwerk-Sicherung " + Date().formatted(.iso8601.year().month().day())) }
+                    catch { backupResult = "Fehler: \(error.localizedDescription)" }
+                }
+                Button("Sicherung importieren …") { importing = true }
+                Button("Alle Listen als PDF zum Ausdrucken …") { export(model.pdfAllLists(), .pdf, "Listwerk") }
+                if let backupResult { Text(backupResult).font(.footnote).textSelection(.enabled) }
+                Text("Die Sicherung ist unverschlüsselt. Beim Import werden gleichnamige Listen ergänzt und Einträge mit gleicher ID aktualisiert; gelöscht wird nichts.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
             Section {
                 Text("Listwerk \(ListwerkCoreInfo.version)").font(.footnote)
             }
         }
         .formStyle(.grouped)
+        .fileExporter(isPresented: Binding { exportFile != nil } set: { if !$0 { exportFile = nil } },
+                      document: exportFile, contentType: exportType, defaultFilename: exportName) { result in
+            switch result {
+            case .success(let url): backupResult = "Gespeichert: \(url.lastPathComponent)"
+            case .failure(let e): backupResult = "Fehler: \(e.localizedDescription)"
+            }
+        }
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
+            switch result {
+            case .success(let url): backupResult = model.importBackup(from: url)
+            case .failure(let e): backupResult = "Fehler: \(e.localizedDescription)"
+            }
+        }
         .frame(minWidth: 420, minHeight: 480)
         .onAppear { token = model.planwerkToken; msClientID = model.msClientID }
     }

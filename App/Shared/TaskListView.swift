@@ -32,6 +32,7 @@ struct TaskListView: View {
         .searchable(text: $model.searchText, prompt: "Suchen")
         .toolbar {
             ToolbarItem { SortMenu() }
+            ToolbarItem { PDFExportButton() }
             ToolbarItem {
                 Toggle(isOn: $model.showCompleted) { Label("Erledigte zeigen", systemImage: "checkmark.circle") }
             }

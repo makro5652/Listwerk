@@ -205,6 +205,7 @@ private struct TodoListView: View {
         .searchable(text: $model.searchText, prompt: "Suchen")
         .toolbar {
             ToolbarItem { SortMenu() }
+            ToolbarItem { PDFExportButton() }
         }
     }
 
