@@ -3,10 +3,18 @@ import ListwerkCore
 
 @main
 struct ListwerkApp: App {
-    @State private var model = AppModel()
+    @State private var model: AppModel
+
+    init() {
+        let m = AppModel()
+        _model = State(initialValue: m)
+        #if os(macOS)
+        QuickEntryPanel.install(model: m)
+        #endif
+    }
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "main") {
             RootView()
                 .environment(model)
                 .task { await model.syncNow() }
@@ -18,6 +26,10 @@ struct ListwerkApp: App {
         Settings {
             SettingsView().environment(model)
         }
+        MenuBarExtra("Listwerk", systemImage: "checklist") {
+            MenuBarView().environment(model)
+        }
+        .menuBarExtraStyle(.window)
         #endif
     }
 }

@@ -7,7 +7,7 @@ struct TaskDetailPane: View {
     var body: some View {
         if let id = model.selectedTaskID,
            let rec = model.records.first(where: { $0.id == id }) {
-            TaskDetailView(rec: rec).id(rec.id)
+            if model.isPlanwerk(rec) { PlanwerkDetailView(rec: rec) } else { TaskDetailView(rec: rec).id(rec.id) }
         } else {
             ContentUnavailableView("Kein Eintrag gewählt", systemImage: "checklist")
         }
@@ -20,6 +20,9 @@ struct TaskDetailView: View {
     let rec: TaskRecord
     @State private var draft: TodoItem
     @State private var newSubtask = ""
+    @State private var pickingFile = false
+    @State private var uploading = false
+    @Environment(\.openURL) private var openURL
 
     init(rec: TaskRecord) {
         self.rec = rec
@@ -82,11 +85,13 @@ struct TaskDetailView: View {
                     Text("Wöchentlich").tag(Recurrence.weekly)
                     Text("Monatlich").tag(Recurrence.monthly)
                     Text("Jährlich").tag(Recurrence.yearly)
-                    // Fremde Regel (z. B. aus Thunderbird) bleibt sichtbar und erhalten.
-                    if let r = draft.recurrence, ![Recurrence.daily, Recurrence.weekdays, Recurrence.weekly, Recurrence.monthly, Recurrence.yearly].contains(r) {
-                        Text("Eigene Regel: \(r)").tag(r)
+                    if draft.recurrence.map(Self.presets.contains) ?? true { Text("Benutzerdefiniert …").tag("FREQ=WEEKLY;INTERVAL=2") }
+                    // Eigene oder fremde Regel (z. B. aus Thunderbird) bleibt sichtbar und erhalten.
+                    if let r = draft.recurrence, !Self.presets.contains(r) {
+                        Text(Recurrence.Rule(r)?.text ?? "Eigene Regel: \(r)").tag(r)
                     }
                 } label: { Label("Wiederholen", systemImage: "repeat") }
+                if let r = draft.recurrence, let rule = Recurrence.Rule(r) { ruleEditor(rule) }
             }
 
             Section("Eigenschaften") {
@@ -123,13 +128,7 @@ struct TaskDetailView: View {
                 }
             }
 
-            if !draft.attachments.isEmpty {
-                Section("Anhänge") {
-                    ForEach(draft.attachments) { a in
-                        Label(a.filename ?? a.uri, systemImage: "paperclip")
-                    }
-                }
-            }
+            attachmentsSection
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
@@ -140,6 +139,77 @@ struct TaskDetailView: View {
     }
 
     // MARK: Teile
+
+    private static let presets = [Recurrence.daily, Recurrence.weekdays, Recurrence.weekly, Recurrence.monthly, Recurrence.yearly]
+
+    /// Intervall, Einheit, Wochentage und Ende frei einstellen.
+    @ViewBuilder private func ruleEditor(_ rule: Recurrence.Rule) -> some View {
+        let set: (Recurrence.Rule) -> Void = { draft.recurrence = $0.rrule }
+        HStack {
+            Stepper("Alle \(rule.interval)", value: Binding(get: { rule.interval }, set: { var r = rule; r.interval = max(1, $0); set(r) }), in: 1...99)
+            Picker("", selection: Binding(get: { rule.freq }, set: { var r = rule; r.freq = $0; if $0 != .weekly { r.byDay = [] }; set(r) })) {
+                Text(rule.interval == 1 ? "Tag" : "Tage").tag(Recurrence.Rule.Freq.daily)
+                Text(rule.interval == 1 ? "Woche" : "Wochen").tag(Recurrence.Rule.Freq.weekly)
+                Text(rule.interval == 1 ? "Monat" : "Monate").tag(Recurrence.Rule.Freq.monthly)
+                Text(rule.interval == 1 ? "Jahr" : "Jahre").tag(Recurrence.Rule.Freq.yearly)
+            }
+            .labelsHidden().fixedSize()
+        }
+        if rule.freq == .weekly {
+            HStack(spacing: 6) {
+                ForEach(Array(zip(Recurrence.Rule.dayOrder, ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"])), id: \.0) { code, name in
+                    let on = rule.byDay.contains(code)
+                    Button(name) {
+                        var r = rule
+                        r.byDay = on ? r.byDay.filter { $0 != code } : r.byDay + [code]
+                        set(r)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(on ? theme.color(\.accent) : nil)
+                    .accessibilityAddTraits(on ? .isSelected : [])
+                }
+            }
+        }
+        Toggle("Endet", isOn: Binding(get: { rule.until != nil }, set: { var r = rule; r.until = $0 ? Calendar.current.date(byAdding: .month, value: 3, to: Date()) : nil; set(r) }))
+        if let until = rule.until {
+            DatePicker("Letzter Termin", selection: Binding(get: { until }, set: { var r = rule; r.until = $0; set(r) }), displayedComponents: .date)
+        }
+    }
+
+    private var attachmentsSection: some View {
+        Section("Anhänge") {
+            ForEach(Array(draft.attachments.enumerated()), id: \.offset) { idx, a in
+                HStack {
+                    if let url = URL(string: a.uri), !a.isInline {
+                        Button { openURL(url) } label: { Label(a.filename ?? a.uri, systemImage: "paperclip") }
+                            .buttonStyle(.plain)
+                            .help(a.uri)
+                    } else {
+                        Label(a.filename ?? "Eingebetteter Anhang", systemImage: "paperclip")
+                    }
+                    Spacer()
+                    Button(role: .destructive) { draft.attachments.remove(at: idx) } label: { Image(systemName: "minus.circle") }
+                        .buttonStyle(.plain).help("Anhang entfernen (die Datei selbst bleibt erhalten)")
+                }
+            }
+            HStack {
+                Button("Datei anhängen …") { pickingFile = true }.disabled(uploading)
+                if uploading { ProgressView().controlSize(.small) }
+            }
+            .fileImporter(isPresented: $pickingFile, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
+                guard case .success(let urls) = result else { return }
+                uploading = true
+                Task {
+                    for u in urls { await model.addAttachment(u, to: rec) }
+                    // Den gespeicherten Stand übernehmen, sonst überschreibt der Entwurf die neuen Anhänge.
+                    if let fresh = model.records.first(where: { $0.id == rec.id }) { draft.attachments = fresh.item.attachments }
+                    uploading = false
+                }
+            }
+            Text(model.account == nil ? "Ohne Konto bleibt die Datei auf diesem Gerät." : "Wird in deine Nextcloud hochgeladen (Ordner „Listwerk“).")
+                .font(.footnote).foregroundStyle(theme.color(\.textSecondary))
+        }
+    }
 
     private var remindersSection: some View {
         Group {
@@ -227,5 +297,34 @@ struct TaskDetailView: View {
         child.parentUID = rec.item.uid
         model.save(child, in: rec.listHref)
         newSubtask = ""
+    }
+}
+
+/// Aufgabe aus dem Gantt-Plan: nur ansehen und abhaken; ändern in Planwerk.
+struct PlanwerkDetailView: View {
+    @Environment(AppModel.self) private var model
+    let rec: TaskRecord
+
+    var body: some View {
+        let i = rec.item
+        Form {
+            Section {
+                Text(i.title).font(.title3.bold())
+                if let p = i.tags.first { LabeledContent("Projekt", value: p) }
+                if let d = i.due { LabeledContent("Fällig", value: d.date().formatted(date: .complete, time: .omitted)) }
+                if let k = i.planwerk?.kind, k != .task { LabeledContent("Art", value: k.categoryTag ?? "") }
+                if let g = i.planwerk?.group { LabeledContent("Gruppe", value: g) }
+                if let a = i.planwerk?.assignee { LabeledContent("Zuständig", value: a) }
+                if !i.notes.isEmpty { Text(i.notes).textSelection(.enabled) }
+            }
+            Section {
+                Button("In Planwerk als erledigt markieren") { model.toggleDone(rec) }
+                Text("Aus Planwerk. Titel und Termin änderst du dort.").font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(ThemeBackground())
+        .navigationTitle(i.title)
     }
 }

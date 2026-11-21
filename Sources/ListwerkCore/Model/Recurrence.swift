@@ -52,4 +52,65 @@ public enum Recurrence {
         }
         return next
     }
+
+    /// Bearbeitbare Form einer Regel (Oberfläche „Benutzerdefiniert“). Nur was `next` auch ausrechnen kann.
+    public struct Rule: Equatable, Sendable {
+        public enum Freq: String, CaseIterable, Sendable { case daily = "DAILY", weekly = "WEEKLY", monthly = "MONTHLY", yearly = "YEARLY" }
+        public var freq: Freq
+        public var interval: Int
+        /// RRULE-Kürzel MO … SU, nur bei wöchentlich.
+        public var byDay: [String]
+        /// Letzter Tag (einschließlich).
+        public var until: Date?
+
+        public init(freq: Freq, interval: Int = 1, byDay: [String] = [], until: Date? = nil) {
+            self.freq = freq; self.interval = interval; self.byDay = byDay; self.until = until
+        }
+
+        public static let dayOrder = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"]
+
+        /// nil bei Regeln, die Listwerk nur durchreicht (z. B. BYMONTHDAY, COUNT).
+        public init?(_ rrule: String) {
+            var p: [String: String] = [:]
+            for part in rrule.split(separator: ";") {
+                let kv = part.split(separator: "=", maxSplits: 1).map(String.init)
+                guard kv.count == 2 else { return nil }
+                p[kv[0].uppercased()] = kv[1]
+            }
+            guard Set(p.keys).isSubset(of: ["FREQ", "INTERVAL", "BYDAY", "UNTIL", "WKST"]),
+                  let f = p["FREQ"].flatMap({ Freq(rawValue: $0.uppercased()) }) else { return nil }
+            let days = p["BYDAY"]?.split(separator: ",").map { $0.uppercased() } ?? []
+            guard days.allSatisfy(Self.dayOrder.contains), days.isEmpty || f == .weekly else { return nil }
+            var until: Date?
+            if let u = p["UNTIL"] {
+                let c = Array(u.prefix(8))
+                guard c.count == 8, let y = Int(String(c[0..<4])), let m = Int(String(c[4..<6])), let d = Int(String(c[6..<8])) else { return nil }
+                until = Calendar.current.date(from: DateComponents(year: y, month: m, day: d))
+            }
+            self.init(freq: f, interval: max(1, Int(p["INTERVAL"] ?? "") ?? 1),
+                      byDay: Self.dayOrder.filter(days.contains), until: until)
+        }
+
+        public var rrule: String {
+            var s = "FREQ=\(freq.rawValue)"
+            if interval > 1 { s += ";INTERVAL=\(interval)" }
+            if freq == .weekly, !byDay.isEmpty { s += ";BYDAY=" + Self.dayOrder.filter(byDay.contains).joined(separator: ",") }
+            if let until {
+                let c = Calendar.current.dateComponents([.year, .month, .day], from: until)
+                s += String(format: ";UNTIL=%04d%02d%02d", c.year!, c.month!, c.day!)
+            }
+            return s
+        }
+
+        /// „Alle 2 Wochen am Mo, Mi bis 24.12.2026“
+        public var text: String {
+            let names = ["MO": "Mo", "TU": "Di", "WE": "Mi", "TH": "Do", "FR": "Fr", "SA": "Sa", "SU": "So"]
+            let one = [Freq.daily: "Täglich", .weekly: "Wöchentlich", .monthly: "Monatlich", .yearly: "Jährlich"][freq]!
+            let many = [Freq.daily: "Tage", .weekly: "Wochen", .monthly: "Monate", .yearly: "Jahre"][freq]!
+            var s = interval == 1 ? one : "Alle \(interval) \(many)"
+            if !byDay.isEmpty { s += " am " + byDay.compactMap { names[$0] }.joined(separator: ", ") }
+            if let until { s += " bis " + until.formatted(date: .numeric, time: .omitted) }
+            return s
+        }
+    }
 }

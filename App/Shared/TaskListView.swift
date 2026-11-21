@@ -40,7 +40,7 @@ struct TaskListView: View {
         .safeAreaInset(edge: .bottom) {
             HStack {
                 Image(systemName: "plus.circle.fill").foregroundStyle(theme.color(\.accent))
-                TextField(canAdd ? "Neuer Eintrag in „\(model.entryTarget?.name ?? "")“" : "Liste wählen, um Einträge anzulegen", text: $newTitle)
+                TextField(canAdd ? "Neuer Eintrag in „\(model.entryTarget?.name ?? "")“, z. B. „Elternbrief morgen 8 Uhr !“" : "Liste wählen, um Einträge anzulegen", text: $newTitle)
                     .textFieldStyle(.plain)
                     .disabled(!canAdd)
                     .onSubmit {
@@ -77,6 +77,10 @@ struct TaskRow: View {
                 Text(rec.item.title.isEmpty ? "Ohne Titel" : rec.item.title)
                     .strikethrough(rec.item.isCompleted)
                     .foregroundStyle(rec.item.isCompleted ? theme.color(\.textSecondary) : theme.color(\.textPrimary))
+                if model.isPlanwerk(rec) {
+                    Label("Planwerk · " + rec.item.tags.joined(), systemImage: "chart.bar.doc.horizontal")
+                        .font(.caption).foregroundStyle(theme.color(\.textSecondary))
+                }
                 if let due = rec.item.due {
                     Text(dueText(due))
                         .font(.caption)

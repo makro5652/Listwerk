@@ -3,6 +3,19 @@
 To-do-App mit Nextcloud-Synchronisation (CalDAV/VTODO) für macOS und iPad, mit Anbindung an Planwerk.
 Stand: Version 0.1.0, Android ist bewusst zurückgestellt.
 
+## Neu in 0.4.0 (macOS/iPad)
+
+- **Schnelleingabe** in allen Eingabefeldern: „Elternbrief morgen 8 Uhr !“ → Titel, Termin, wichtig. Versteht heute,
+  morgen, übermorgen, Wochentage, 24.11., in 3 Tagen, 8 Uhr, 8:30, um 14, täglich, werktags, jeden Dienstag,
+  alle 2 Wochen (`QuickEntry`, Tests in `QuickEntryTests`).
+- **Menüleiste** (Mac): Schnelleingabe mit Listenwahl, heute Fälliges zum Abhaken. **Globales Kürzel ⌃⌥N** öffnet
+  überall ein kleines Eingabefenster.
+- **Wiederholungen frei einstellen:** alle N Tage/Wochen/Monate/Jahre, Wochentage, Enddatum (`Recurrence.Rule`).
+- **Anhänge hinzufügen:** mit Konto in die Nextcloud-Dateien (Ordner „Listwerk“, Link `index.php/f/<id>`),
+  ohne Konto als Kopie im App-Ordner. Anhänge lassen sich öffnen und entfernen.
+- **Planwerk in „Geplant“:** offene, terminierte Aufgaben aus dem Gantt-Plan erscheinen in „Geplant“ und lassen sich
+  dort abhaken (`PUT /api/tasks/{id}`, braucht einen Token mit Schreibrecht). Ändern weiterhin in Planwerk.
+
 ## Neu in 0.3.0 (macOS/iPad)
 
 - **Sichern und wiederherstellen** (Einstellungen → Sichern und Drucken): alle Listen als unverschlüsselte JSON-Datei,

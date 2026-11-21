@@ -45,11 +45,73 @@ public struct PlanwerkMember: Decodable, Equatable, Sendable {
     public let name: String
 }
 
+/// Eine Aufgabe aus dem Gantt-Plan (Tabelle `tasks`).
+public struct PlanwerkTask: Decodable, Equatable, Sendable {
+    public let id: Int
+    public let projectId: Int
+    public let title: String
+    public let notes: String?
+    public let kind: String?
+    public let startDate: String?
+    public let endDate: String?
+    public let done: Int?
+    public let groupId: Int?
+    public let assigneeId: Int?
+    enum CodingKeys: String, CodingKey {
+        case id, title, notes, kind, done
+        case projectId = "project_id", startDate = "start_date", endDate = "end_date", groupId = "group_id", assigneeId = "assignee_id"
+    }
+
+    /// Listen-Href der angezeigten Planwerk-Einträge; keine echte Liste, nur zum Erkennen.
+    public static let listPrefix = "planwerk:/"
+    public static func taskID(_ rec: TaskRecord) -> Int? {
+        rec.listHref.hasPrefix(listPrefix) ? Int(rec.item.uid.dropFirst("planwerk-".count)) : nil
+    }
+}
+
 public struct PlanwerkState: Decodable, Equatable, Sendable {
     public let rev: Int
     public let projects: [PlanwerkProject]
     public let groups: [PlanwerkGroup]
     public let members: [PlanwerkMember]
+    public let tasks: [PlanwerkTask]?
+
+    /// Offene, terminierte Aufgaben als schreibgeschützte Einträge (für „Geplant“). Aufgaben aus Projekten, deren
+    /// Nextcloud-Liste schon in `skipLists` liegt, fehlen: sie kommen bereits über den Abgleich.
+    public func plannedRecords(skipLists: Set<String> = []) -> [TaskRecord] {
+        let skip = Set(links.filter { skipLists.contains($0.listPath) }.map(\.projectID))
+        let open = Dictionary(uniqueKeysWithValues: projects.filter { $0.archived != true }.map { ($0.id, $0) })
+        return (tasks ?? []).compactMap { t in
+            guard t.done ?? 0 == 0, let p = open[t.projectId], !skip.contains(p.id),
+                  let day = t.endDate ?? t.startDate else { return nil }
+            let ymd = day.prefix(10).split(separator: "-").compactMap { Int($0) }
+            guard ymd.count == 3 else { return nil }
+            var item = TodoItem(uid: "planwerk-\(t.id)", title: t.title, notes: t.notes ?? "")
+            item.due = .day(ymd[0], ymd[1], ymd[2])
+            item.tags = [p.name]
+            item.color = p.color
+            item.planwerk = PlanwerkMeta(kind: PlanwerkKind(rawValue: t.kind ?? "") ?? .task,
+                                         group: groups.first { $0.id == t.groupId }?.name,
+                                         assignee: members.first { $0.id == t.assigneeId }?.name)
+            return TaskRecord(item: item, listHref: PlanwerkTask.listPrefix + "\(p.id)/", href: nil, etag: nil,
+                              isDirty: false, isDeleted: false, ics: "", baseICS: nil)
+        }
+    }
+
+    /// Projekte mit Nextcloud-Liste, samt den Gruppen- und Personennamen als Auswahlwerte.
+    public var links: [PlanwerkLink] {
+        let people = members.map(\.name).sorted()
+        return projects.compactMap { p in
+            guard p.archived != true, let url = p.ncCalendar, let c = URLComponents(string: url) else { return nil }
+            var path = c.percentEncodedPath
+            if !path.hasSuffix("/") { path += "/" }
+            return PlanwerkLink(
+                projectID: p.id, projectName: p.name, projectColor: p.color, listPath: path,
+                groups: groups.filter { $0.projectId == p.id }.map(\.name),
+                people: people
+            )
+        }
+    }
 }
 
 /// Verknüpfung einer Nextcloud-Liste mit einem Planwerk-Projekt.
@@ -71,21 +133,7 @@ public protocol PlanwerkConnector: Sendable {
 }
 
 extension PlanwerkConnector {
-    /// Projekte mit Nextcloud-Liste, samt den Gruppen- und Personennamen als Auswahlwerte.
-    public func linkedLists() async throws -> [PlanwerkLink] {
-        let state = try await fetchState()
-        let people = state.members.map(\.name).sorted()
-        return state.projects.compactMap { p in
-            guard p.archived != true, let url = p.ncCalendar, let c = URLComponents(string: url) else { return nil }
-            var path = c.percentEncodedPath
-            if !path.hasSuffix("/") { path += "/" }
-            return PlanwerkLink(
-                projectID: p.id, projectName: p.name, projectColor: p.color, listPath: path,
-                groups: state.groups.filter { $0.projectId == p.id }.map(\.name),
-                people: people
-            )
-        }
-    }
+    public func linkedLists() async throws -> [PlanwerkLink] { try await fetchState().links }
 }
 
 /// Planwerk über die REST-API, angemeldet mit einem Sync-Schlüssel (`Authorization: Bearer pwk_…`).
@@ -130,6 +178,14 @@ public struct PlanwerkClient: PlanwerkConnector {
 
     public func triggerNextcloudSync() async throws {
         _ = try await perform(request("POST", "api/nextcloud/sync"))
+    }
+
+    /// Aufgabe im Gantt-Plan abhaken bzw. wieder öffnen.
+    public func setDone(taskID: Int, _ done: Bool) async throws {
+        var r = request("PUT", "api/tasks/\(taskID)")
+        r.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        r.httpBody = Data(#"{"done":\#(done ? 1 : 0)}"#.utf8)
+        _ = try await perform(r)
     }
 }
 

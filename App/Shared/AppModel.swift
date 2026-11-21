@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
 import ListwerkCore
 
 enum SidebarSelection: Hashable {
@@ -117,7 +118,9 @@ final class AppModel {
     func reloadTasks() {
         guard let selection else { records = []; return }
         let all: [TaskRecord]
-        if case .list(let href) = selection { all = (try? store.tasks(inList: href)) ?? [] } else { all = (try? store.allTasks()) ?? [] }
+        if case .list(let href) = selection { all = (try? store.tasks(inList: href)) ?? [] }
+        else if selection == .planned { all = ((try? store.allTasks()) ?? []) + planwerkTasks }
+        else { all = (try? store.allTasks()) ?? [] }
         // In der To-Do-Darstellung stehen Erledigte immer im eigenen, einklappbaren Abschnitt.
         let keepDone = showCompleted || layout == .todo || selection == .completed
         let query = searchText.trimmingCharacters(in: .whitespaces)
@@ -166,6 +169,7 @@ final class AppModel {
         let open = all.filter { $0.item.parentUID == nil && !$0.item.isCompleted }
         var c: [SidebarSelection: Int] = [:]
         for s in [SidebarSelection.myDay, .important, .planned, .all] { c[s] = open.filter { matches(s, $0) }.count }
+        c[.planned, default: 0] += planwerkTasks.count
         smartCounts = c
     }
 
@@ -232,13 +236,31 @@ final class AppModel {
         set { UserDefaults.standard.set(newValue, forKey: "lastWritableList") }
     }
 
+    /// Eintrag aus der Schnelleingabe („Elternbrief morgen 8 Uhr !“): Datum, Uhrzeit, Wichtigkeit, Wiederholung.
+    static func quickItem(_ text: String) -> TodoItem? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let q = QuickEntry.parse(trimmed)
+        var item = TodoItem(title: q.title)
+        item.due = q.due
+        item.recurrence = q.recurrence
+        if q.important { item.priority = 1 }
+        return item
+    }
+
+    /// Menüleiste und globales Kürzel: direkt in eine bestimmte Liste.
+    func quickAdd(_ text: String, to listHref: String) {
+        guard var item = Self.quickItem(text), let list = list(listHref), list.canWrite else { return }
+        if list.isPlanwerkLinked { item.planwerk = PlanwerkMeta() }
+        lastWritableList = list.href
+        perform { _ = try self.store.save(item, inList: list.href) }
+        scheduleSync()
+    }
+
     func addTask(title: String, parent: String? = nil, due: ICalDate? = nil) {
-        guard let list = entryTarget else { return }
-        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        var item = TodoItem(title: trimmed)
+        guard let list = entryTarget, var item = Self.quickItem(title) else { return }
         item.parentUID = parent
-        item.due = due
+        if let due { item.due = due }
         if list.isPlanwerkLinked { item.planwerk = PlanwerkMeta() }
         // Wie in To Do: in „Wichtig“ mit Stern, in „Geplant“ für heute, in „Mein Tag“ direkt im Tag.
         if selection == .important { item.priority = 1 }
@@ -249,12 +271,16 @@ final class AppModel {
         scheduleSync()
     }
 
+    func isPlanwerk(_ rec: TaskRecord) -> Bool { rec.listHref.hasPrefix(PlanwerkTask.listPrefix) }
+
     func save(_ item: TodoItem, in listHref: String) {
+        guard !listHref.hasPrefix(PlanwerkTask.listPrefix) else { return }
         perform { _ = try self.store.save(item, inList: listHref) }
         scheduleSync(delay: 2)
     }
 
     func toggleDone(_ rec: TaskRecord) {
+        if let id = PlanwerkTask.taskID(rec) { completePlanwerk(id); return }
         var item = rec.item
         // Wiederkehrend (wie To Do): dieser Eintrag wird erledigt, ein neuer mit dem nächsten Termin entsteht.
         if !item.isCompleted, let rule = item.recurrence, let due = item.due, let next = Recurrence.next(rule, from: due.date()) {
@@ -279,12 +305,13 @@ final class AppModel {
     }
 
     func delete(_ rec: TaskRecord) {
+        guard !isPlanwerk(rec) else { return }
         perform { try self.store.delete(uid: rec.item.uid, inList: rec.listHref) }
         scheduleSync()
     }
 
     func move(_ rec: TaskRecord, to target: String) {
-        guard rec.listHref != target else { return }
+        guard rec.listHref != target, !isPlanwerk(rec) else { return }
         perform { try self.store.move(uid: rec.item.uid, fromList: rec.listHref, toList: target) }
         scheduleSync()
     }
@@ -449,23 +476,76 @@ final class AppModel {
         set { newValue.isEmpty ? CredentialStore.delete(account: "planwerk-token") : CredentialStore.save(newValue, account: "planwerk-token") }
     }
 
+    /// Offene, terminierte Aufgaben aus dem Gantt-Plan; erscheinen in „Geplant“ und lassen sich dort abhaken.
+    var planwerkTasks: [TaskRecord] = []
+
+    private var planwerkClient: PlanwerkClient? {
+        guard let base = URL(string: planwerkURL), !planwerkURL.isEmpty, !planwerkToken.isEmpty else { return nil }
+        return PlanwerkClient(baseURL: base, token: planwerkToken)
+    }
+
     @discardableResult
     func refreshPlanwerk() async -> String {
-        guard let base = URL(string: planwerkURL), !planwerkURL.isEmpty, !planwerkToken.isEmpty else {
-            return "Adresse und Token eintragen."
-        }
-        let cache = PlanwerkLinkCache(connector: PlanwerkClient(baseURL: base, token: planwerkToken))
+        guard let client = planwerkClient else { planwerkTasks = []; return "Adresse und Token eintragen." }
         do {
-            try await cache.apply(to: store)
-            let links = try await cache.current()
-            var map: [String: PlanwerkLink] = [:]
-            for l in links { map[l.listPath] = l }
-            planwerkLinks = map
-            return "Verbunden. \(links.count) Projekt(e) mit Nextcloud-Liste verknüpft."
+            let state = try await client.fetchState()
+            let links = state.links
+            let paths = Set(links.map(\.listPath))
+            for l in lists where paths.contains(l.href) != l.isPlanwerkLinked { try store.setPlanwerkLinked(l.href, !l.isPlanwerkLinked) }
+            planwerkLinks = Dictionary(links.map { ($0.listPath, $0) }, uniquingKeysWith: { a, _ in a })
+            planwerkTasks = state.plannedRecords(skipLists: Set(lists.map(\.href)))
+            reloadAll()
+            return "Verbunden. \(planwerkTasks.count) offene Aufgabe(n) in „Geplant“, \(links.count) Projekt(e) mit Nextcloud-Liste."
         } catch {
             // Planwerk ist optional; ein Fehler blockiert nichts.
             statusMessage = "Planwerk nicht erreichbar."
             return "Fehler: \(error)"
+        }
+    }
+
+    func completePlanwerk(_ id: Int) {
+        guard let client = planwerkClient else { return }
+        let removed = planwerkTasks.filter { PlanwerkTask.taskID($0) == id }
+        planwerkTasks.removeAll { PlanwerkTask.taskID($0) == id }   // sofort ausblenden
+        reloadAll()
+        Task {
+            do { try await client.setDone(taskID: id, true) }
+            catch {
+                planwerkTasks += removed
+                reloadAll()
+                errorMessage = "Planwerk: Abhaken fehlgeschlagen (\(error.localizedDescription)). Darf der Token schreiben?"
+            }
+        }
+    }
+
+    // MARK: Anhänge
+
+    /// Mit Konto: in die Nextcloud-Dateien (Ordner „Listwerk“), damit der Anhang überall erreichbar ist.
+    /// Ohne Konto: Kopie im App-Ordner, nur auf diesem Gerät.
+    func addAttachment(_ file: URL, to rec: TaskRecord) async {
+        let scoped = file.startAccessingSecurityScopedResource()
+        defer { if scoped { file.stopAccessingSecurityScopedResource() } }
+        let name = file.lastPathComponent
+        let mime = UTType(filenameExtension: file.pathExtension)?.preferredMIMEType
+        do {
+            let ref: AttachmentRef
+            if let acc = account, let pw = CredentialStore.load(account: Self.accountKey(acc)) {
+                let user = acc.principalPath?.split(separator: "/").last.map { String($0).removingPercentEncoding ?? String($0) } ?? acc.loginName
+                let client = CalDAVClient(serverURL: acc.serverURL, loginName: acc.loginName, appPassword: pw)
+                ref = try await client.uploadAttachment(try Data(contentsOf: file), filename: name, mimeType: mime, userID: user)
+            } else {
+                let dir = Self.databaseURL().deletingLastPathComponent().appendingPathComponent("Anhänge/\(UUID().uuidString)", isDirectory: true)
+                try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+                let dest = dir.appendingPathComponent(name)
+                try FileManager.default.copyItem(at: file, to: dest)
+                ref = AttachmentRef(uri: dest.absoluteString, mimeType: mime, filename: name)
+            }
+            // Frisch laden: der Eintrag kann sich während des Hochladens geändert haben.
+            guard var item = (try? store.record(uid: rec.item.uid, inList: rec.listHref))?.item else { return }
+            item.attachments.append(ref)
+            save(item, in: rec.listHref)
+        } catch {
+            errorMessage = "Anhang fehlgeschlagen: \(error.localizedDescription)"
         }
     }
 

@@ -258,12 +258,12 @@ struct TodoCard: View {
                 }
             }
             Spacer()
-            Button { model.toggleImportant(rec) } label: {
+            if !model.isPlanwerk(rec) { Button { model.toggleImportant(rec) } label: {
                 let on = (1...4).contains(item.priority)
                 Image(systemName: on ? "star.fill" : "star").foregroundStyle(on ? theme.color(\.accent) : theme.color(\.textSecondary))
             }
             .buttonStyle(.plain)
-            .help("Wichtig")
+            .help("Wichtig") }
         }
         .padding(.vertical, 8).padding(.horizontal, 6)
     }
@@ -272,6 +272,7 @@ struct TodoCard: View {
         var out: [(String, Bool)] = []
         if model.isInMyDay(rec) { out.append(("☀︎ Mein Tag", false)) }
         if model.selection?.isSmart == true, let l = model.list(rec.listHref) { out.append((l.name, false)) }
+        if model.isPlanwerk(rec) { out.append(("Planwerk", false)) }
         if let due = rec.item.due {
             let d = due.date()
             let overdue = !rec.item.isCompleted && d < Date() && !(due.isAllDay && Calendar.current.isDateInToday(d))
@@ -288,6 +289,14 @@ struct TaskContextMenu: View {
     @Environment(AppModel.self) private var model
     let rec: TaskRecord
     var body: some View {
+        if model.isPlanwerk(rec) {
+            Button("In Planwerk erledigt") { model.toggleDone(rec) }
+        } else {
+            menu
+        }
+    }
+
+    @ViewBuilder private var menu: some View {
         Button(rec.item.isCompleted ? "Wieder öffnen" : "Erledigt") { model.toggleDone(rec) }
         Button((1...4).contains(rec.item.priority) ? "Nicht mehr wichtig" : "Als wichtig markieren") { model.toggleImportant(rec) }
         Button(model.isInMyDay(rec) ? "Aus „Mein Tag“ entfernen" : "Zu „Mein Tag“ hinzufügen") { model.toggleMyDay(rec.item.uid) }

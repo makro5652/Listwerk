@@ -246,6 +246,32 @@ public struct CalDAVClient: CalDAVService {
         }
     }
 
+    // MARK: Anhänge (Nextcloud-Dateien)
+
+    /// Lädt eine Datei nach „Listwerk/“ in den Nextcloud-Dateien des Nutzers und gibt den Anhang zurück.
+    /// Der Link zeigt auf die Datei in der Nextcloud-Weboberfläche (`index.php/f/<fileid>`), wie es auch der
+    /// Nextcloud-Kalender macht; ohne Datei-ID auf die WebDAV-Adresse.
+    /// `userID` ist der letzte Teil des Principal-Pfads (kann vom Anmeldenamen abweichen).
+    public func uploadAttachment(_ data: Data, filename: String, mimeType: String?, userID: String) async throws -> AttachmentRef {
+        var allowed = CharacterSet.urlPathAllowed; allowed.remove(charactersIn: "/?#;")
+        func enc(_ s: String) -> String { s.addingPercentEncoding(withAllowedCharacters: allowed) ?? s }
+        let folder = davRoot + "files/\(enc(userID))/Listwerk/"
+        _ = try await send(try request("MKCOL", folder), accept: [201, 405])   // 405: gibt es schon
+        // Eindeutiger Name, damit gleichnamige Dateien sich nicht überschreiben.
+        let name = String(UUID().uuidString.prefix(8)).lowercased() + "-" + filename
+        let path = folder + enc(name)
+        var put = try request("PUT", path, headers: ["Content-Type": mimeType ?? "application/octet-stream"])
+        put.httpBody = data
+        _ = try await send(put, accept: [200, 201, 204])
+        let ms = try await multistatus("PROPFIND", path, depth: "0", body: """
+        <?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns"><d:prop><oc:fileid/></d:prop></d:propfind>
+        """)
+        let base = serverURL.absoluteString.hasSuffix("/") ? String(serverURL.absoluteString.dropLast()) : serverURL.absoluteString
+        let fileID = ms.responses.compactMap { $0.prop(NS.oc, "fileid")?.trimmedText }.first { !$0.isEmpty }
+        let uri = try fileID.map { base + "/index.php/f/\($0)" } ?? url(for: path).absoluteString
+        return AttachmentRef(uri: uri, mimeType: mimeType, filename: filename)
+    }
+
     public func delete(href: String, etag: String?) async throws -> DeleteResult {
         let req = try request("DELETE", href, headers: etag.map { ["If-Match": $0] } ?? [:])
         let (data, resp) = try await transport.send(req)
