@@ -36,7 +36,7 @@ object ReminderPlanner {
                     PlannedNotification(
                         id = "${rec.listHref}|${rec.item.uid}|$i",
                         fireDate = fire,
-                        title = rec.item.title.ifEmpty { "Erinnerung" },
+                        title = rec.item.title.ifEmpty { CoreText.t("Erinnerung", "Reminder") },
                         body = rec.item.notes.split('\n').firstOrNull { it.isNotEmpty() } ?: "",
                         listHref = rec.listHref,
                         uid = rec.item.uid,

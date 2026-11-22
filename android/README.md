@@ -3,6 +3,19 @@
 Android-Portierung der Swift-App Listwerk (Aufgaben auf Nextcloud-CalDAV, optional Planwerk).
 Kotlin, Jetpack Compose (Material 3), Room, OkHttp, WorkManager, Glance. `minSdk` 26, `compileSdk`/`targetSdk` 36, Paket `app.listwerk.android`.
 
+## Neu in 0.5.0
+
+- **Englische Oberfläche, standardmäßig aktiv.** Einstellungen → Design → „Sprache / Language“ (English, Deutsch).
+  Englisch liegt in `res/values`, Deutsch in `res/values-de`. Ab Android 13 nutzt die App die App-Sprache des Systems
+  (auch unter Systemeinstellungen → Apps → ToDo-Listwerk → Sprache), davor `AppLocale.wrap` in `attachBaseContext`.
+  Texte aus dem Kern (Fehlermeldungen, Erinnerungstitel) folgen über `CoreText`.
+- **Schnelleingabe wie am Mac** (`core/…/QuickEntry.kt`, Tests in `QuickEntryTest`): „Elternbrief morgen 8 Uhr !“,
+  „Call parents tomorrow 8am !“, next Monday, at 3:30pm, every 2 weeks, werktags, in 3 Tagen. Gilt im Eingabefeld
+  und im Schnelleintrag (Kachel, Shortcut, Teilen); gewählte Datums-Chips haben Vorrang.
+- Angezeigter Name **ToDo-Listwerk** (Paket `app.listwerk.android` unverändert).
+- Hinweis: Die Debug-APK ist mit einem anderen Debug-Schlüssel signiert als 0.3.0. Ein Update über die alte App
+  scheitert; vorher deinstallieren (lokale Listen ohne Konto gehen dabei verloren).
+
 ## Aufbau
 
 - `core/` – reines Kotlin/JVM (`app.listwerk.core`): verlustfreies iCalendar-Modell, feldweiser Dreiwege-Merge, `Store`, CalDAV-Client, Login Flow v2, `SyncEngine`, Themes/Paletten, Planwerk-Client, Erinnerungsplanung. Enthält die portierten Tests samt `FakeServer`.

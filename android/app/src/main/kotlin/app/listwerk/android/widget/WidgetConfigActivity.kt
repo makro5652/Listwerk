@@ -38,6 +38,8 @@ import kotlinx.coroutines.withContext
 
 /** Auswahl der Liste beim Platzieren eines Widgets: „Alle offenen“ oder eine bestimmte Liste. */
 class WidgetConfigActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: android.content.Context) = super.attachBaseContext(app.listwerk.android.AppLocale.wrap(newBase))
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)

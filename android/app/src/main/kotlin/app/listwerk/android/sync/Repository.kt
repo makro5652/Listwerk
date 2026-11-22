@@ -5,6 +5,7 @@ import app.listwerk.android.data.AppPrefs
 import app.listwerk.core.Account
 import app.listwerk.core.ICalDate
 import app.listwerk.core.PlanwerkMeta
+import app.listwerk.core.QuickEntry
 import app.listwerk.core.Recurrence
 import app.listwerk.core.Store
 import app.listwerk.core.TaskList
@@ -74,14 +75,20 @@ class Repository(private val c: AppContainer) {
         notes: String = "",
         parentUid: String? = null,
         priority: Int = 0,
+        /** Schnelleingabe auswerten („Elternbrief morgen 8 Uhr !“, „Call mom tomorrow 8am“). */
+        quick: Boolean = false,
+        /** Termin, falls weder [due] noch die Schnelleingabe einen liefert (z. B. „Geplant“: heute). */
+        fallbackDue: ICalDate? = null,
     ): TodoItem? {
         val trimmed = title.trim()
         if (trimmed.isEmpty()) return null
+        val q = if (quick) QuickEntry.parse(trimmed) else QuickEntry(trimmed)
         val item = io {
             val list = store.list(listHref) ?: return@io null
             if (!list.canWrite) return@io null
             val base = TodoItem(
-                title = trimmed, notes = notes, color = color, due = due, parentUID = parentUid, priority = priority,
+                title = q.title, notes = notes, color = color, due = due ?: q.due ?: fallbackDue, parentUID = parentUid,
+                priority = if (q.important && priority == 0) 1 else priority, recurrence = q.recurrence,
                 planwerk = if (list.isPlanwerkLinked) PlanwerkMeta() else null,
             )
             store.save(base, listHref).item
@@ -96,7 +103,7 @@ class Repository(private val c: AppContainer) {
         val lines = text.trim().lines()
         val title = lines.firstOrNull { it.isNotBlank() }?.trim() ?: return null
         val notes = lines.dropWhile { it.isBlank() }.drop(1).joinToString("\n").trim()
-        return addTask(target.href, title, notes = notes)
+        return addTask(target.href, title, notes = notes, quick = true)
     }
 
     suspend fun save(item: TodoItem, listHref: String) {

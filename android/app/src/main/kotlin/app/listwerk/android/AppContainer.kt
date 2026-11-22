@@ -52,6 +52,13 @@ data class SyncStatus(
 class ListwerkApp : Application(), Configuration.Provider {
     val container by lazy { AppContainer(this) }
 
+    override fun attachBaseContext(base: Context) = super.attachBaseContext(AppLocale.wrap(base))
+
+    override fun onCreate() {
+        super.onCreate()
+        AppLocale.init(this)
+    }
+
     // WorkManager wird erst bei Bedarf gestartet (Standard-Initializer ist im Manifest entfernt): schnellerer Kaltstart.
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setMinimumLoggingLevel(android.util.Log.ERROR).build()

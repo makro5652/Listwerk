@@ -121,7 +121,7 @@ class PlanwerkClient(
     private val base = baseUrl.trimEnd('/')
 
     init {
-        if (!base.startsWith("https://", ignoreCase = true)) throw DavError.InvalidResponse("Nur HTTPS-Adressen sind erlaubt")
+        if (!base.startsWith("https://", ignoreCase = true)) throw DavError.InvalidResponse(CoreText.t("Nur HTTPS-Adressen sind erlaubt", "Only HTTPS addresses are allowed"))
     }
 
     private fun request(method: String, path: String) = HttpRequest(

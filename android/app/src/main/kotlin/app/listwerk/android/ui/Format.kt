@@ -21,7 +21,7 @@ object Format {
             diff == 1L -> context.getString(R.string.tomorrow)
             diff == -1L -> context.getString(R.string.yesterday)
             diff in 2..6 -> day.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())
-            day.year == today.year -> DateTimeFormatter.ofPattern("d. MMM", Locale.getDefault()).format(day)
+            day.year == today.year -> DateTimeFormatter.ofPattern(if (Locale.getDefault().language == "de") "d. MMM" else "MMM d", Locale.getDefault()).format(day)
             else -> DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault()).format(day)
         }
     }

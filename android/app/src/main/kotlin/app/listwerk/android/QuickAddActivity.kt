@@ -37,6 +37,8 @@ import kotlinx.coroutines.launch
  * Schnelleinstellungs-Kachel und das Teilen von Text aus anderen Apps. Kein Netzwerkzugriff; der Abgleich läuft danach im Hintergrund.
  */
 class QuickAddActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: android.content.Context) = super.attachBaseContext(app.listwerk.android.AppLocale.wrap(newBase))
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val c = container

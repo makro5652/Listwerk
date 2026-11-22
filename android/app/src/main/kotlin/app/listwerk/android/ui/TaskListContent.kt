@@ -187,10 +187,11 @@ fun TaskListContent(
 
 @Composable
 private fun DragHandle(onStart: () -> Unit, onDrag: (Float) -> Unit, onEnd: () -> Unit) {
+    val dragLabel = stringResource(R.string.drag_to_reorder)
     Box(
         Modifier
             .size(44.dp)
-            .semantics { contentDescription = "Ziehen zum Umsortieren" }
+            .semantics { contentDescription = dragLabel }
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragStart = { onStart() },

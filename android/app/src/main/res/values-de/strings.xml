@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ToDo-Listwerk</string>
+
+    <!-- Allgemein -->
+    <string name="action_add">Hinzufügen</string>
+    <string name="action_back">Zurück</string>
+    <string name="action_cancel">Abbrechen</string>
+    <string name="action_complete">Erledigen</string>
+    <string name="action_reopen">Wieder öffnen</string>
+    <string name="action_delete">Löschen</string>
+    <string name="action_mark_done">Erledigt</string>
+    <string name="action_remove">Entfernen</string>
+    <string name="action_save">Speichern</string>
+    <string name="action_sync">Jetzt abgleichen</string>
+    <string name="action_undo">Rückgängig</string>
+    <string name="more">Mehr</string>
+    <string name="settings">Einstellungen</string>
+    <string name="today">Heute</string>
+    <string name="tomorrow">Morgen</string>
+    <string name="yesterday">Gestern</string>
+    <string name="untitled">Ohne Titel</string>
+    <string name="none">Keine</string>
+    <string name="nobody">Niemand</string>
+
+    <!-- Listen -->
+    <string name="all_open">Alle offenen</string>
+    <string name="open_lists">Listen öffnen</string>
+    <string name="new_list">Neue Liste</string>
+    <string name="edit_list">Liste bearbeiten</string>
+    <string name="delete_list">Liste löschen</string>
+    <string name="delete_list_title">Liste löschen?</string>
+    <string name="delete_list_message">Die Liste und alle ihre Einträge werden auch auf dem Server gelöscht.</string>
+    <string name="list_name">Name</string>
+    <string name="list">Liste</string>
+    <string name="color">Farbe</string>
+    <string name="entry_color">Farbe des Eintrags</string>
+    <string name="remove_color">Farbe entfernen</string>
+    <string name="show_completed">Erledigte anzeigen</string>
+    <string name="hide_completed">Erledigte ausblenden</string>
+    <string name="empty_list">Nichts zu tun.</string>
+    <string name="empty_no_lists">Noch keine Listen. Lege über das Menü eine an.</string>
+    <string name="read_only">schreibgeschützt</string>
+    <string name="read_only_list">Diese Liste ist schreibgeschützt.</string>
+    <string name="shared">geteilt</string>
+    <string name="shared_by">geteilt von %1$s</string>
+    <string name="planwerk_linked">Planwerk</string>
+    <string name="new_entry_in">Neuer Eintrag in „%1$s“</string>
+    <string name="new_entry_disabled">Keine beschreibbare Liste</string>
+    <string name="new_entry_hint">Neuer Eintrag</string>
+    <string name="deleted_snackbar">„%1$s“ gelöscht</string>
+    <string name="not_synced">Noch nicht abgeglichen</string>
+    <string name="date_ellipsis">Datum …</string>
+
+    <!-- Eintrag -->
+    <string name="title">Titel</string>
+    <string name="notes">Notizen</string>
+    <string name="due">Fällig</string>
+    <string name="remove_due">Fälligkeit entfernen</string>
+    <string name="with_time">Mit Uhrzeit</string>
+    <string name="reminders">Erinnerungen</string>
+    <string name="add_reminder">Erinnerung hinzufügen</string>
+    <string name="reminder_at_due">Zur Fälligkeit</string>
+    <string name="reminder_15min">15 Minuten vorher</string>
+    <string name="reminder_1h">1 Stunde vorher</string>
+    <string name="reminder_1d">1 Tag vorher</string>
+    <string name="reminder_in_1h">In 1 Stunde</string>
+    <string name="reminder_before">%1$s vorher</string>
+    <string name="reminder_after">%1$s danach</string>
+    <string name="reminder_email_only">nur E-Mail</string>
+    <string name="duration_days">%1$d Tage</string>
+    <string name="duration_hours">%1$d Stunden</string>
+    <string name="duration_minutes">%1$d Minuten</string>
+    <string name="recurring_readonly">Wiederholung: %1$s (wird unverändert beibehalten)</string>
+    <string name="priority">Priorität</string>
+    <string name="priority_none">Keine</string>
+    <string name="priority_high">Hoch</string>
+    <string name="priority_medium">Mittel</string>
+    <string name="priority_low">Niedrig</string>
+    <string name="tags_hint">Schlagwörter (mit Komma getrennt)</string>
+    <string name="link">Link</string>
+    <string name="open_link">Link öffnen</string>
+    <string name="subtasks">Unteraufgaben</string>
+    <string name="add_subtask">Unteraufgabe hinzufügen</string>
+    <string name="attachments">Anhänge</string>
+    <string name="attachment_inline">Eingebetteter Anhang</string>
+
+    <!-- Planwerk -->
+    <string name="planwerk">Planwerk</string>
+    <string name="planwerk_day_only">Planwerk kennt nur Tage; die Uhrzeit entfällt.</string>
+    <string name="kind_task">Aufgabe</string>
+    <string name="kind_milestone">Meilenstein</string>
+    <string name="kind_experiment">Experiment</string>
+    <string name="group">Gruppe</string>
+    <string name="assignee">Zugewiesen</string>
+    <string name="planwerk_url">Planwerk-Adresse</string>
+    <string name="planwerk_token">Zugriffstoken</string>
+    <string name="planwerk_token_saved">Ein Token ist gespeichert; leer lassen, um es zu behalten.</string>
+    <string name="planwerk_save_test">Speichern und testen</string>
+    <string name="planwerk_removed">Planwerk-Verbindung entfernt.</string>
+    <string name="planwerk_connected">Planwerk verbunden (Revision %1$d).</string>
+    <string name="planwerk_token_rejected">Planwerk hat das Token abgelehnt.</string>
+    <string name="planwerk_failed">Planwerk nicht erreichbar: %1$s</string>
+    <string name="planwerk_unreachable">Planwerk nicht erreichbar</string>
+
+    <!-- Anmeldung und Abgleich -->
+    <string name="login_intro">Melde dich bei deiner Nextcloud an. Die Anmeldung läuft im Browser; die App erhält nur ein App-Passwort.</string>
+    <string name="login_server">Nextcloud-Adresse</string>
+    <string name="login_button">Im Browser anmelden</string>
+    <string name="login_waiting">Warte auf die Anmeldung im Browser …</string>
+    <string name="login_waiting_hint">Bestätige dort den Zugriff und kehre dann hierher zurück.</string>
+    <string name="login_failed">Anmeldung fehlgeschlagen: %1$s</string>
+    <string name="login_https_only">Aus Sicherheitsgründen sind nur HTTPS-Adressen erlaubt.</string>
+    <string name="login_again">Erneut anmelden</string>
+    <string name="logout">Abmelden</string>
+    <string name="logout_title">Abmelden?</string>
+    <string name="logout_message">Alle lokal gespeicherten Daten dieses Kontos werden von diesem Gerät entfernt. Nicht abgeglichene Änderungen gehen verloren.</string>
+    <string name="error_not_connected">Nicht mit einem Konto verbunden.</string>
+    <string name="sync_auth_required">Anmeldung abgelaufen. Bitte erneut anmelden.</string>
+    <string name="sync_offline">Offline – Änderungen werden später abgeglichen.</string>
+    <string name="sync_failed">Abgleich fehlgeschlagen: %1$s</string>
+    <string name="sync_conflicts_resolved">Abgeglichen (%1$d Konflikte automatisch gelöst)</string>
+
+    <!-- Einstellungen -->
+    <string name="settings_design">Design</string>
+    <string name="theme_system">System</string>
+    <string name="settings_behavior">Verhalten</string>
+    <string name="settings_focus_input">Eingabefeld beim Start fokussieren</string>
+    <string name="settings_start_list">Beim Start öffnen</string>
+    <string name="start_list_last">Zuletzt benutzte Liste</string>
+    <string name="settings_notifications">Erinnerungen</string>
+    <string name="settings_notification_settings">Benachrichtigungen</string>
+    <string name="settings_exact_alarms">Exakte Alarme</string>
+    <string name="settings_exact_on">Exakte Alarme sind erlaubt.</string>
+    <string name="settings_exact_off">Exakte Alarme sind nicht erlaubt; Erinnerungen können sich leicht verspäten.</string>
+    <string name="settings_nextcloud">Nextcloud</string>
+    <string name="settings_planwerk_hint">Optional: Adresse und Token (pwk_…) deines Planwerks. Das Token wird verschlüsselt gespeichert.</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="channel_reminders">Erinnerungen</string>
+    <string name="channel_reminders_desc">Mitteilungen zu fälligen Einträgen</string>
+
+    <!-- Schnelleintrag, Widget, Shortcut -->
+    <string name="quick_add_title">Neuer Eintrag</string>
+    <string name="quick_add_failed">Kein Eintrag gespeichert: keine beschreibbare Liste.</string>
+    <string name="shortcut_new_entry">Neuer Eintrag</string>
+    <string name="widget_description">Offene Einträge einer Liste</string>
+    <string name="widget_add">Neuer Eintrag</string>
+    <string name="widget_empty">Nichts zu tun.</string>
+    <string name="widget_choose_list">Liste für das Widget wählen</string>
+
+    <!-- Ohne Konto, To-Do-Darstellung, intelligente Listen -->
+    <string name="default_list_name">Aufgaben</string>
+    <string name="login_skip">Ohne Anmeldung nutzen</string>
+    <string name="login_skip_hint">Alles bleibt auf diesem Gerät. Meldest du dich später an, werden deine Listen hochgeladen und abgeglichen.</string>
+    <string name="login_later_hint">Deine bisherigen Listen und Aufgaben werden nach der Anmeldung in die Nextcloud hochgeladen.</string>
+    <string name="settings_layout">Darstellung</string>
+    <string name="layout_listwerk">ToDo-Listwerk</string>
+    <string name="layout_todo">Wie Microsoft To Do</string>
+    <string name="settings_local_mode">Ohne Konto: Listen liegen nur auf diesem Gerät.</string>
+    <string name="settings_login">Mit Nextcloud anmelden und abgleichen</string>
+    <string name="smart_my_day">Mein Tag</string>
+    <string name="smart_important">Wichtig</string>
+    <string name="smart_planned">Geplant</string>
+    <string name="smart_all">Aufgaben</string>
+    <string name="smart_completed">Erledigt</string>
+    <string name="search">Suchen</string>
+    <string name="sort_by">Sortieren nach …</string>
+    <string name="sort_manual">Eigene Reihenfolge</string>
+    <string name="sort_importance">Wichtigkeit</string>
+    <string name="sort_due">Fälligkeitsdatum</string>
+    <string name="sort_alpha">Alphabetisch</string>
+    <string name="sort_created">Erstellungsdatum</string>
+    <string name="steps_count">%1$d von %2$d</string>
+    <string name="add_task">Aufgabe hinzufügen</string>
+    <string name="add_to_my_day">Zu „Mein Tag“ hinzufügen</string>
+    <string name="remove_from_my_day">Aus „Mein Tag“ entfernen</string>
+    <string name="repeat_none">Nicht wiederholen</string>
+    <string name="repeat_daily">Täglich</string>
+    <string name="repeat_weekdays">Werktags</string>
+    <string name="repeat_weekly">Wöchentlich</string>
+    <string name="repeat_monthly">Monatlich</string>
+    <string name="repeat_yearly">Jährlich</string>
+    <string name="arrange_lists">Listen ordnen</string>
+    <string name="favorite_list">Favorit</string>
+    <string name="favorite_hint">Die Favoritenliste (Stern) öffnet sich beim Start.</string>
+    <string name="move_up">Nach oben</string>
+    <string name="move_down">Nach unten</string>
+    <string name="finish">Fertig</string>
+    <!-- Sprache -->
+    <string name="settings_language">Sprache / Language</string>
+    <string name="drag_to_reorder">Ziehen zum Umsortieren</string>
+</resources>

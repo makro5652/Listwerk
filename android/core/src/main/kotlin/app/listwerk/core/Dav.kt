@@ -77,8 +77,9 @@ sealed interface MoveResult {
 }
 
 sealed class DavError(message: String) : Exception(message) {
-    data object Unauthorized : DavError("Anmeldung abgelehnt (401)") {
+    data object Unauthorized : DavError("401") {
         private fun readResolve(): Any = Unauthorized
+        override val message: String get() = CoreText.t("Anmeldung abgelehnt (401)", "Sign-in rejected (401)")
     }
 
     data class Http(val status: Int, val detail: String) : DavError("HTTP $status: $detail")
@@ -240,7 +241,7 @@ class CalDAVClient(
 
     init {
         // Zugangsdaten gehen nur über verschlüsselte Verbindungen.
-        if (!base.scheme.equals("https", ignoreCase = true)) throw DavError.InvalidResponse("Nur HTTPS-Adressen sind erlaubt")
+        if (!base.scheme.equals("https", ignoreCase = true)) throw DavError.InvalidResponse(CoreText.t("Nur HTTPS-Adressen sind erlaubt", "Only HTTPS addresses are allowed"))
     }
 
     /** Pfad zur DAV-Wurzel, auch wenn Nextcloud in einem Unterverzeichnis läuft. */
@@ -252,7 +253,7 @@ class CalDAVClient(
         }
 
     private fun url(path: String): String {
-        val authority = base.rawAuthority ?: throw DavError.InvalidResponse("Ungültige Server-Adresse")
+        val authority = base.rawAuthority ?: throw DavError.InvalidResponse(CoreText.t("Ungültige Server-Adresse", "Invalid server address"))
         return "${base.scheme}://$authority$path"
     }
 
@@ -451,7 +452,7 @@ class CalDAVClient(
     override suspend fun deleteCollection(href: String) {
         val resp = transport.send(request("DELETE", href))
         if (resp.status == 401) throw DavError.Unauthorized
-        if (resp.status !in listOf(200, 204, 404)) throw DavError.Http(resp.status, "Liste konnte nicht gelöscht werden")
+        if (resp.status !in listOf(200, 204, 404)) throw DavError.Http(resp.status, CoreText.t("Liste konnte nicht gelöscht werden", "List could not be deleted"))
     }
 
     companion object {
@@ -499,11 +500,11 @@ class LoginFlowV2(private val transport: HttpTransport) {
     suspend fun start(server: String): Session {
         val base = server.trimEnd('/')
         val resp = transport.send(HttpRequest("POST", "$base/index.php/login/v2", mapOf("User-Agent" to userAgent)))
-        if (resp.status != 200) throw DavError.Http(resp.status, "Login Flow v2 nicht verfügbar")
+        if (resp.status != 200) throw DavError.Http(resp.status, CoreText.t("Login Flow v2 nicht verfügbar", "Login Flow v2 not available"))
         val s = try { json.decodeFromString<Start>(resp.bodyText) } catch (e: Exception) {
-            throw DavError.InvalidResponse("Ungültige Antwort im Login Flow")
+            throw DavError.InvalidResponse(CoreText.t("Ungültige Antwort im Login Flow", "Invalid response in Login Flow"))
         }
-        if (s.login.isBlank() || s.poll.endpoint.isBlank()) throw DavError.InvalidResponse("Ungültige Adressen im Login Flow")
+        if (s.login.isBlank() || s.poll.endpoint.isBlank()) throw DavError.InvalidResponse(CoreText.t("Ungültige Adressen im Login Flow", "Invalid addresses in Login Flow"))
         return Session(s.login, s.poll.endpoint, s.poll.token)
     }
 
@@ -517,9 +518,9 @@ class LoginFlowV2(private val transport: HttpTransport) {
             ),
         )
         if (resp.status == 404) return null
-        if (resp.status != 200) throw DavError.Http(resp.status, "Abfrage fehlgeschlagen")
+        if (resp.status != 200) throw DavError.Http(resp.status, CoreText.t("Abfrage fehlgeschlagen", "Request failed"))
         val d = try { json.decodeFromString<Done>(resp.bodyText) } catch (e: Exception) {
-            throw DavError.InvalidResponse("Ungültige Antwort im Login Flow")
+            throw DavError.InvalidResponse(CoreText.t("Ungültige Antwort im Login Flow", "Invalid response in Login Flow"))
         }
         return NextcloudCredentials(d.server, d.loginName, d.appPassword)
     }
@@ -532,6 +533,6 @@ class LoginFlowV2(private val transport: HttpTransport) {
             poll(session)?.let { return it }
             delay(intervalMs)
         }
-        throw DavError.Network("Zeitüberschreitung bei der Anmeldung")
+        throw DavError.Network(CoreText.t("Zeitüberschreitung bei der Anmeldung", "Sign-in timed out"))
     }
 }

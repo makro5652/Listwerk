@@ -4,7 +4,7 @@ import java.time.Instant
 import java.util.UUID
 
 object ListwerkCoreInfo {
-    const val VERSION = "0.1.0"
+    const val VERSION = "0.5.0"
 }
 
 enum class PlanwerkKind(val raw: String) {

@@ -15,7 +15,9 @@ data class SyncReport(
     val isClean: Boolean get() = errors.isEmpty()
 }
 
-class SyncNotConfigured : Exception("Kein Konto eingerichtet")
+class SyncNotConfigured : Exception() {
+    override val message: String get() = CoreText.t("Kein Konto eingerichtet", "No account set up")
+}
 
 /**
  * Gleicht die lokale Datenbank mit Nextcloud ab. Läuft seriell (Mutex), nie zwei Durchläufe gleichzeitig.
@@ -90,7 +92,7 @@ class SyncEngine(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                report.errors.add("Liste ${l.name}: ${describe(e)}")
+                report.errors.add(CoreText.t("Liste", "List") + " ${l.name}: ${describe(e)}")
             }
         }
     }
@@ -113,7 +115,7 @@ class SyncEngine(
                         // Ersatzweg: im Ziel anlegen, in der Quelle löschen.
                         val put = service.put(target, rec.ics, etag = null, create = true)
                         if (put !is PutResult.Ok) {
-                            report.errors.add("Verschieben von „${rec.item.title}“ fehlgeschlagen")
+                            report.errors.add(CoreText.t("Verschieben von „${rec.item.title}“ fehlgeschlagen", "Moving “${rec.item.title}” failed"))
                             continue
                         }
                         finishUpload(rec, target, put.etag)
@@ -126,7 +128,7 @@ class SyncEngine(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                report.errors.add("Verschieben von „${rec.item.title}“: ${describe(e)}")
+                report.errors.add(CoreText.t("Verschieben von „${rec.item.title}“: ", "Moving “${rec.item.title}”: ") + describe(e))
             }
         }
     }

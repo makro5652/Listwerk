@@ -240,9 +240,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val today = java.time.LocalDate.now().let { ICalDate.day(it.year, it.monthValue, it.dayOfMonth) }
         viewModelScope.launch {
             val item = repo.addTask(
-                target.href, title, color,
-                due ?: today.takeIf { sel == AppPrefs.PLANNED },
+                target.href, title, color, due,
                 priority = if (sel == AppPrefs.IMPORTANT) 1 else 0,
+                quick = true,
+                fallbackDue = today.takeIf { sel == AppPrefs.PLANNED },
             )
             if (item != null && sel == AppPrefs.MY_DAY) toggleMyDay(item.uid)
         }

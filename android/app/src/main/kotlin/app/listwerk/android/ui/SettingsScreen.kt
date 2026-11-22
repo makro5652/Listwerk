@@ -63,6 +63,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import app.listwerk.android.BuildConfig
+import app.listwerk.android.AppLocale
 import app.listwerk.android.R
 import app.listwerk.android.container
 import app.listwerk.android.data.AppPrefs
@@ -100,6 +101,18 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Header(stringResource(R.string.settings_design))
+            Text(stringResource(R.string.settings_language))
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                val current = remember { AppLocale.current(context) }
+                val langs = listOf(AppLocale.EN to "English", AppLocale.DE to "Deutsch")
+                langs.forEachIndexed { i, (code, label) ->
+                    SegmentedButton(
+                        selected = current == code,
+                        onClick = { if (current != code) (context as? android.app.Activity)?.let { AppLocale.set(it, code) } },
+                        shape = SegmentedButtonDefaults.itemShape(i, langs.size),
+                    ) { Text(label) }
+                }
+            }
             val layout by vm.layout.collectAsState()
             Text(stringResource(R.string.settings_layout))
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
