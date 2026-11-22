@@ -65,10 +65,77 @@ final class QuickEntryTests: XCTestCase {
         XCTAssertEqual(r.interval, 2)
         XCTAssertEqual(r.byDay, ["MO", "WE"])
         XCTAssertEqual(r.rrule, "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE")
+        L10n.language = .de
+        defer { L10n.language = .en }
         XCTAssertEqual(r.text, "Alle 2 Wochen am Mo, Mi")
         XCTAssertEqual(Recurrence.Rule("FREQ=MONTHLY;UNTIL=20271231")?.rrule, "FREQ=MONTHLY;UNTIL=20271231")
         XCTAssertNil(Recurrence.Rule("FREQ=MONTHLY;BYMONTHDAY=1"), "nicht bearbeitbar, wird nur durchgereicht")
         XCTAssertEqual(Recurrence.Rule(Recurrence.daily)?.text, "Täglich")
+        L10n.language = .en
+        XCTAssertEqual(r.text, "Every 2 weeks on Mon, Wed")
+        XCTAssertEqual(Recurrence.Rule(Recurrence.daily)?.text, "Daily")
+    }
+
+    // MARK: Englische Schnelleingabe
+
+    func testEnglishTomorrowWithTime() {
+        let q = p("Call parents tomorrow 8am !")
+        XCTAssertEqual(q.title, "Call parents")
+        XCTAssertTrue(q.important)
+        XCTAssertEqual(ymdhm(q.due), [2026, 11, 21, 8, 0])
+    }
+
+    func testEnglishAtAndPM() {
+        XCTAssertEqual(ymdhm(p("Meeting today at 3:30pm").due), [2026, 11, 20, 15, 30])
+        XCTAssertEqual(ymdhm(p("Meeting tomorrow 8 pm").due), [2026, 11, 21, 20, 0])
+        XCTAssertEqual(p("Meeting tomorrow 8 pm").title, "Meeting")
+        XCTAssertEqual(ymdhm(p("Lunch 12pm tomorrow").due), [2026, 11, 21, 12, 0])
+        XCTAssertEqual(ymdhm(p("Night 12am tomorrow").due), [2026, 11, 21, 0, 0])
+    }
+
+    func testEnglishWeekdayAndRecurrence() {
+        let q = p("Team call next Monday")
+        XCTAssertEqual(q.title, "Team call")
+        XCTAssertEqual(q.due, .day(2026, 11, 23))
+        let e = p("Water plants every 2 weeks")
+        XCTAssertEqual(e.recurrence, "FREQ=WEEKLY;INTERVAL=2")
+        XCTAssertEqual(e.title, "Water plants")
+        XCTAssertEqual(p("Standup every Tuesday").recurrence, "FREQ=WEEKLY;BYDAY=TU")
+        XCTAssertEqual(p("Report weekdays").recurrence, Recurrence.weekdays)
+        XCTAssertEqual(p("Dentist in 3 days").due, .day(2026, 11, 23))
+    }
+
+    func testGermanAmStaysGerman() {
+        let q = p("Treffen 8 am Montag")
+        XCTAssertEqual(q.due, .day(2026, 11, 23))
+        XCTAssertEqual(p("Teamsitzung program").title, "Teamsitzung program")
+    }
+}
+
+final class LocalizationTests: XCTestCase {
+    override func tearDown() { L10n.language = .en }
+
+    func testDefaultIsEnglish() {
+        XCTAssertEqual(AppLanguage.allCases.first, .en)
+        L10n.language = .en
+        XCTAssertEqual(L("Mein Tag"), "My Day")
+        XCTAssertEqual(L("{0} von {1}", 2, 5), "2 of 5")
+    }
+
+    func testGermanAndFallback() {
+        L10n.language = .de
+        XCTAssertEqual(L("Mein Tag"), "Mein Tag")
+        XCTAssertEqual(L("{0} von {1}", 2, 5), "2 von 5")
+        L10n.language = .en
+        XCTAssertEqual(L("Kein Schlüssel vorhanden"), "Kein Schlüssel vorhanden", "fehlende Übersetzung: deutscher Text")
+    }
+
+    func testEveryEntryKeepsPlaceholders() {
+        for (de, en) in L10nTable.en {
+            for i in 0..<4 where de.contains("{\(i)}") {
+                XCTAssertTrue(en.contains("{\(i)}"), "Platzhalter {\(i)} fehlt: \(de) → \(en)")
+            }
+        }
     }
 }
 

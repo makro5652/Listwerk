@@ -81,6 +81,6 @@ struct CheckCircle: View {
                 Image(systemName: done ? "checkmark.circle.fill" : "circle").foregroundStyle(tint)
             }
         }
-        .accessibilityLabel(done ? "Wieder öffnen" : "Erledigen")
+        .accessibilityLabel(done ? L("Wieder öffnen") : L("Erledigen"))
     }
 }

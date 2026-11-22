@@ -59,7 +59,7 @@ enum PDFExport {
             y += h + after
         }
 
-        let stand = "Stand: " + Date().formatted(date: .long, time: .shortened)
+        let stand = L("Stand: {0}", Date().lwFormatted(date: .long, time: .shortened))
         for section in sections {
             newPage()
             draw(text(section.title, size: 20, bold: true), x: margin, after: 2)
@@ -68,9 +68,9 @@ enum PDFExport {
             for row in section.rows {
                 let i = row.item
                 let x = margin + CGFloat(min(row.depth, 4)) * 20
-                var line = (TodoPriority(icalValue: i.priority) == .high ? "! " : "") + (i.title.isEmpty ? "Ohne Titel" : i.title)
+                var line = (TodoPriority(icalValue: i.priority) == .high ? "! " : "") + (i.title.isEmpty ? L("Ohne Titel") : i.title)
                 if let d = i.due {
-                    line += "  ·  " + d.date().formatted(date: .abbreviated, time: d.isAllDay ? .omitted : .shortened)
+                    line += "  ·  " + d.date().lwFormatted(date: .abbreviated, time: d.isAllDay ? .omitted : .shortened)
                 }
                 draw(text(line, size: 11, gray: i.isCompleted), x: x + box + 8, after: 9) { top in
                     let r = CGRect(x: x, y: page.height - top - box - 1.5, width: box, height: box)
@@ -94,11 +94,11 @@ struct PDFExportButton: View {
     @State private var file: ExportFile?
 
     var body: some View {
-        Button { file = ExportFile(model.pdfCurrentView()) } label: { Label("Als PDF exportieren", systemImage: "printer") }
-            .help("Ansicht als PDF zum Ausdrucken und Abhaken")
+        Button { file = ExportFile(model.pdfCurrentView()) } label: { Label(L("Als PDF exportieren"), systemImage: "printer") }
+            .help(L("Ansicht als PDF zum Ausdrucken und Abhaken"))
             .fileExporter(isPresented: Binding { file != nil } set: { if !$0 { file = nil } },
                           document: file, contentType: .pdf, defaultFilename: model.selectionTitle) { result in
-                if case .failure(let e) = result { model.errorMessage = "PDF speichern fehlgeschlagen: \(e.localizedDescription)" }
+                if case .failure(let e) = result { model.errorMessage = L("PDF speichern fehlgeschlagen: {0}", e.localizedDescription) }
             }
     }
 }

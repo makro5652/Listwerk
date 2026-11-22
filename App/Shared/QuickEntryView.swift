@@ -15,12 +15,12 @@ struct QuickEntryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            TextField("Neue Aufgabe, z. B. „Elternbrief morgen 8 Uhr !“", text: $text)
+            TextField(L("Neue Aufgabe, z. B. „Elternbrief morgen 8 Uhr !“"), text: $text)
                 .textFieldStyle(.roundedBorder)
                 .focused($focused)
                 .onSubmit(add)
             HStack {
-                Picker("Liste", selection: Binding(get: { listHref ?? "" }, set: { target = $0 })) {
+                Picker(L("Liste"), selection: Binding(get: { listHref ?? "" }, set: { target = $0 })) {
                     ForEach(lists) { Text($0.name).tag($0.href) }
                 }
                 .labelsHidden()
@@ -29,6 +29,7 @@ struct QuickEntryView: View {
                 Text(preview).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
         }
+        .id(model.language)
         .onAppear { focused = true }
         #if os(macOS)
         .onExitCommand(perform: onDone)
@@ -38,9 +39,9 @@ struct QuickEntryView: View {
     private var preview: String {
         guard let item = AppModel.quickItem(text) else { return "" }
         var parts: [String] = []
-        if let d = item.due { parts.append(d.isAllDay ? d.date().formatted(date: .abbreviated, time: .omitted) : d.date().formatted(date: .abbreviated, time: .shortened)) }
+        if let d = item.due { parts.append(d.isAllDay ? d.date().lwFormatted(date: .abbreviated, time: .omitted) : d.date().lwFormatted(date: .abbreviated, time: .shortened)) }
         if let r = item.recurrence { parts.append("↻ " + (Recurrence.Rule(r)?.text ?? r)) }
-        if item.priority > 0 { parts.append("wichtig") }
+        if item.priority > 0 { parts.append(L("wichtig")) }
         return parts.joined(separator: " · ")
     }
 

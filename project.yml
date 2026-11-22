@@ -2,6 +2,7 @@
 name: Listwerk
 options:
   bundleIdPrefix: app.listwerk   # PLATZHALTER: bitte durch die eigene Kennung ersetzen
+  developmentLanguage: en
   deploymentTarget:
     macOS: "14.0"
     iOS: "17.0"
@@ -19,8 +20,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.listwerk.mac
-        PRODUCT_NAME: Listwerk
-        MARKETING_VERSION: "0.4.0"
+        PRODUCT_NAME: ToDo-Listwerk
+        MARKETING_VERSION: "0.5.0"
         CURRENT_PROJECT_VERSION: "1"
         ENABLE_HARDENED_RUNTIME: YES
         GENERATE_INFOPLIST_FILE: YES
@@ -29,7 +30,11 @@ targets:
     info:
       path: App/macOS/Info.plist
       properties:
-        CFBundleDisplayName: Listwerk
+        CFBundleDisplayName: ToDo-Listwerk
+        CFBundleName: ToDo-Listwerk
+        CFBundleLocalizations: [en, de]
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.productivity
   Listwerk-iPad:
     type: application
@@ -41,8 +46,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.listwerk.ipad
-        PRODUCT_NAME: Listwerk
-        MARKETING_VERSION: "0.4.0"
+        PRODUCT_NAME: ToDo-Listwerk
+        MARKETING_VERSION: "0.5.0"
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "2"   # nur iPad
         GENERATE_INFOPLIST_FILE: YES
@@ -50,7 +55,11 @@ targets:
     info:
       path: App/iPad/Info.plist
       properties:
-        CFBundleDisplayName: Listwerk
+        CFBundleDisplayName: ToDo-Listwerk
+        CFBundleName: ToDo-Listwerk
+        CFBundleLocalizations: [en, de]
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait

@@ -18,11 +18,11 @@ enum SortMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .manual: "Eigene Reihenfolge"
-        case .importance: "Wichtigkeit"
-        case .due: "Fälligkeitsdatum"
-        case .alpha: "Alphabetisch"
-        case .created: "Erstellungsdatum"
+        case .manual: L("Eigene Reihenfolge")
+        case .importance: L("Wichtigkeit")
+        case .due: L("Fälligkeitsdatum")
+        case .alpha: L("Alphabetisch")
+        case .created: L("Erstellungsdatum")
         }
     }
 }
@@ -30,7 +30,7 @@ enum SortMode: String, CaseIterable, Identifiable {
 enum AppLayout: String, CaseIterable, Identifiable {
     case listwerk, todo
     var id: String { rawValue }
-    var label: String { self == .listwerk ? "Listwerk" : "Wie Microsoft To Do" }
+    var label: String { self == .listwerk ? "ToDo-Listwerk" : L("Wie Microsoft To Do") }
 }
 
 /// Zentrale Zustandsverwaltung. Die Oberfläche liest ausschließlich aus der lokalen Datenbank;
@@ -58,6 +58,27 @@ final class AppModel {
     var layout: AppLayout { didSet { try? store.setSetting("layout", layout.rawValue); reloadTasks() } }
     var sortMode: SortMode { didSet { try? store.setSetting("sort", sortMode.rawValue); reloadTasks() } }
     var searchText = "" { didSet { reloadTasks() } }
+
+    /// Sprache der Oberfläche (Standard: Englisch). Gilt sofort; Systemmenüs folgen beim nächsten Start.
+    var language: AppLanguage = AppModel.storedLanguage() {
+        didSet {
+            L10n.language = language
+            UserDefaults.standard.set(language.rawValue, forKey: "appLanguage")
+            UserDefaults.standard.set([language.rawValue], forKey: "AppleLanguages")
+            reloadTasks()
+        }
+    }
+
+    /// Vor dem ersten Fenster aufrufen (siehe ListwerkApp.init): setzt Sprache für Texte, Datumsformate und Systemmenüs.
+    nonisolated static func storedLanguage() -> AppLanguage {
+        AppLanguage(rawValue: UserDefaults.standard.string(forKey: "appLanguage") ?? "") ?? .en
+    }
+
+    nonisolated static func applyStoredLanguage() {
+        let lang = storedLanguage()
+        L10n.language = lang
+        UserDefaults.standard.set([lang.rawValue], forKey: "AppleLanguages")
+    }
 
     /// Favoritenliste (Stern): öffnet sich beim Start. Nur auf diesem Gerät.
     var favoriteList: String? { didSet { try? store.setSetting("favorite", favoriteList) } }
@@ -370,7 +391,7 @@ final class AppModel {
     }
 
     private func perform(_ work: () throws -> Void) {
-        do { try work() } catch { errorMessage = "Speichern fehlgeschlagen: \(error.localizedDescription)" }
+        do { try work() } catch { errorMessage = L("Speichern fehlgeschlagen: {0}", error.localizedDescription) }
         reloadAll()
     }
 
@@ -380,12 +401,12 @@ final class AppModel {
         errorMessage = nil
         var text = server.trimmingCharacters(in: .whitespacesAndNewlines)
         if !text.contains("://") { text = "https://" + text }
-        guard let url = URL(string: text), url.host != nil else { errorMessage = "Ungültige Server-Adresse."; return }
+        guard let url = URL(string: text), url.host != nil else { errorMessage = L("Ungültige Server-Adresse."); return }
         do {
             let flow = LoginFlowV2()
             let session = try await flow.start(server: url)
             loginURL = session.loginURL
-            statusMessage = "Bitte im Browser den Zugriff bestätigen …"
+            statusMessage = L("Bitte im Browser den Zugriff bestätigen …")
             let creds = try await flow.waitForCredentials(session)
             loginURL = nil
             let client = CalDAVClient(serverURL: creds.serverURL, loginName: creds.loginName, appPassword: creds.appPassword)
@@ -408,7 +429,7 @@ final class AppModel {
         } catch {
             loginURL = nil
             statusMessage = nil
-            errorMessage = "Anmeldung fehlgeschlagen: \(error.localizedDescription)"
+            errorMessage = L("Anmeldung fehlgeschlagen: {0}", error.localizedDescription)
         }
     }
 
@@ -426,7 +447,7 @@ final class AppModel {
     /// „Ohne Anmeldung nutzen“: lokal arbeiten, eine erste Liste anlegen.
     func skipLogin() {
         onboarded = true
-        if lists.isEmpty { createList(name: "Aufgaben", color: nil) }
+        if lists.isEmpty { createList(name: L("Aufgaben"), color: nil) }
     }
 
     static func accountKey(_ a: Account) -> String { "\(a.loginName)@\(a.serverURL.absoluteString)" }
@@ -457,13 +478,13 @@ final class AppModel {
         do {
             let report = try await engine.syncAll()
             statusMessage = report.isClean ? nil : report.errors.joined(separator: "\n")
-            if report.conflicts > 0 { statusMessage = "\(report.conflicts) Konflikt(e) automatisch aufgelöst." }
+            if report.conflicts > 0 { statusMessage = L("{0} Konflikt(e) automatisch aufgelöst.", report.conflicts) }
         } catch SyncError.notConfigured {
-            errorMessage = "Kein Nextcloud-Konto eingerichtet."
+            errorMessage = L("Kein Nextcloud-Konto eingerichtet.")
         } catch DAVError.unauthorized {
-            errorMessage = "Anmeldung abgelaufen. Bitte neu anmelden."
+            errorMessage = L("Anmeldung abgelaufen. Bitte neu anmelden.")
         } catch {
-            errorMessage = "Abgleich fehlgeschlagen: \(error.localizedDescription)"
+            errorMessage = L("Abgleich fehlgeschlagen: {0}", error.localizedDescription)
         }
         await refreshPlanwerk()
         reloadAll()
@@ -486,7 +507,7 @@ final class AppModel {
 
     @discardableResult
     func refreshPlanwerk() async -> String {
-        guard let client = planwerkClient else { planwerkTasks = []; return "Adresse und Token eintragen." }
+        guard let client = planwerkClient else { planwerkTasks = []; return L("Adresse und Token eintragen.") }
         do {
             let state = try await client.fetchState()
             let links = state.links
@@ -495,11 +516,11 @@ final class AppModel {
             planwerkLinks = Dictionary(links.map { ($0.listPath, $0) }, uniquingKeysWith: { a, _ in a })
             planwerkTasks = state.plannedRecords(skipLists: Set(lists.map(\.href)))
             reloadAll()
-            return "Verbunden. \(planwerkTasks.count) offene Aufgabe(n) in „Geplant“, \(links.count) Projekt(e) mit Nextcloud-Liste."
+            return L("Verbunden. {0} offene Aufgabe(n) in „Geplant“, {1} Projekt(e) mit Nextcloud-Liste.", planwerkTasks.count, links.count)
         } catch {
             // Planwerk ist optional; ein Fehler blockiert nichts.
-            statusMessage = "Planwerk nicht erreichbar."
-            return "Fehler: \(error)"
+            statusMessage = L("Planwerk nicht erreichbar.")
+            return L("Fehler: {0}", error)
         }
     }
 
@@ -513,7 +534,7 @@ final class AppModel {
             catch {
                 planwerkTasks += removed
                 reloadAll()
-                errorMessage = "Planwerk: Abhaken fehlgeschlagen (\(error.localizedDescription)). Darf der Token schreiben?"
+                errorMessage = L("Planwerk: Abhaken fehlgeschlagen ({0}). Darf der Token schreiben?", error.localizedDescription)
             }
         }
     }
@@ -545,7 +566,7 @@ final class AppModel {
             item.attachments.append(ref)
             save(item, in: rec.listHref)
         } catch {
-            errorMessage = "Anhang fehlgeschlagen: \(error.localizedDescription)"
+            errorMessage = L("Anhang fehlgeschlagen: {0}", error.localizedDescription)
         }
     }
 
@@ -560,7 +581,7 @@ final class AppModel {
 
     /// Verbindet per Geräte-Code (falls nötig) und importiert alle Listen. Gibt eine Meldung für die Oberfläche zurück.
     func importMSTodo() async -> String {
-        guard !msClientID.isEmpty else { return "Bitte zuerst die App-ID (Client-ID) eintragen." }
+        guard !msClientID.isEmpty else { return L("Bitte zuerst die App-ID (Client-ID) eintragen.") }
         let home = account?.homePath ?? Store.localHome
         let client = MSTodoClient(clientID: msClientID)
         do {
@@ -568,7 +589,7 @@ final class AppModel {
             if let refresh = CredentialStore.load(account: "mstodo-refresh") {
                 do { tokens = try await client.refresh(refresh) } catch DAVError.http(let st, _) where st == 400 {
                     CredentialStore.delete(account: "mstodo-refresh")   // Token widerrufen oder abgelaufen
-                    return "Anmeldung abgelaufen, bitte erneut auf „Verbinden“ klicken."
+                    return L("Anmeldung abgelaufen, bitte erneut auf „Verbinden“ klicken.")
                 }
             } else {
                 let code = try await client.startDeviceLogin()
@@ -580,7 +601,7 @@ final class AppModel {
                     try await Task.sleep(for: .seconds(code.interval))
                     found = try await client.pollDeviceLogin(code)
                 }
-                guard let f = found else { return "Anmeldung abgelaufen, bitte erneut versuchen." }
+                guard let f = found else { return L("Anmeldung abgelaufen, bitte erneut versuchen.") }
                 tokens = f
             }
             CredentialStore.save(tokens.refresh, account: "mstodo-refresh")
@@ -588,9 +609,9 @@ final class AppModel {
             let n = try store.importMSTodo(data, homePath: home)
             reloadAll()
             scheduleSync()
-            return "\(n.lists) Liste(n), \(n.tasks) Aufgabe(n) importiert."
+            return L("{0} Liste(n), {1} Aufgabe(n) importiert.", n.lists, n.tasks)
         } catch {
-            return "Fehler: \(error)"
+            return L("Fehler: {0}", error)
         }
     }
 
@@ -607,9 +628,9 @@ final class AppModel {
             let n = try store.importBackup(Data(contentsOf: url), homePath: homeForNewLists)
             reloadAll()
             scheduleSync()
-            return "\(n.lists) Liste(n), \(n.tasks) Eintrag/Einträge wiederhergestellt."
+            return L("{0} Liste(n), {1} Eintrag/Einträge wiederhergestellt.", n.lists, n.tasks)
         } catch {
-            return "Fehler: \(error.localizedDescription)"
+            return L("Fehler: {0}", error.localizedDescription)
         }
     }
 

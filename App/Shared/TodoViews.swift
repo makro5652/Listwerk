@@ -23,7 +23,7 @@ struct SmartListInfo: Identifiable {
 extension AppModel {
     /// Titel der Auswahl (intelligente Liste oder Listenname).
     var selectionTitle: String {
-        if let info = SmartListInfo.info(selection) { return info.name }
+        if let info = SmartListInfo.info(selection) { return L(info.name) }
         return currentList?.name ?? ""
     }
 }
@@ -34,11 +34,11 @@ struct SortMenu: View {
     var body: some View {
         @Bindable var model = model
         Menu {
-            Picker("Sortieren nach", selection: $model.sortMode) {
+            Picker(L("Sortieren nach"), selection: $model.sortMode) {
                 ForEach(SortMode.allCases) { Text($0.label).tag($0) }
             }
             .pickerStyle(.inline)
-        } label: { Label("Sortieren", systemImage: "arrow.up.arrow.down") }
+        } label: { Label(L("Sortieren"), systemImage: "arrow.up.arrow.down") }
     }
 }
 
@@ -68,7 +68,7 @@ private struct TodoSidebar: View {
         @Bindable var model = model
         List(selection: $model.selection) {
             ForEach(SmartListInfo.all) { s in
-                row(icon: s.icon, tint: s.tint, name: s.name, count: model.smartCount(s.selection)).tag(s.selection)
+                row(icon: s.icon, tint: s.tint, name: L(s.name), count: model.smartCount(s.selection)).tag(s.selection)
             }
             Divider()
             ForEach(model.lists) { list in
@@ -81,23 +81,23 @@ private struct TodoSidebar: View {
                         return true
                     }
                     .contextMenu {
-                        Button("Umbenennen …") { renaming = list; renameText = list.name }.disabled(!list.canWrite)
-                        Button("Nach oben") { model.moveList(list, by: -1) }.disabled(list.href == model.lists.first?.href)
-                        Button("Nach unten") { model.moveList(list, by: 1) }.disabled(list.href == model.lists.last?.href)
-                        Button(model.favoriteList == list.href ? "Favorit entfernen" : "Als Favorit festlegen") { model.toggleFavorite(list) }
+                        Button(L("Umbenennen …")) { renaming = list; renameText = list.name }.disabled(!list.canWrite)
+                        Button(L("Nach oben")) { model.moveList(list, by: -1) }.disabled(list.href == model.lists.first?.href)
+                        Button(L("Nach unten")) { model.moveList(list, by: 1) }.disabled(list.href == model.lists.last?.href)
+                        Button(model.favoriteList == list.href ? L("Favorit entfernen") : L("Als Favorit festlegen")) { model.toggleFavorite(list) }
                         Divider()
-                        Button("Löschen", role: .destructive) { model.deleteList(list) }
+                        Button(L("Löschen"), role: .destructive) { model.deleteList(list) }
                     }
             }
             .onMove { offsets, dest in model.moveLists(from: offsets, to: dest) }
         }
         .scrollContentBackground(.hidden)
         .background(theme.color(\.sidebar))
-        .navigationTitle("Listwerk")
+        .navigationTitle("ToDo-Listwerk")
         .safeAreaInset(edge: .bottom) {
             VStack(alignment: .leading, spacing: 4) {
                 if let s = model.statusMessage { Text(s).font(.caption).foregroundStyle(theme.color(\.textSecondary)) }
-                Button { creating = true } label: { Label("Neue Liste", systemImage: "plus") }
+                Button { creating = true } label: { Label(L("Neue Liste"), systemImage: "plus") }
                     .buttonStyle(.plain).foregroundStyle(theme.color(\.accent))
             }
             .padding(10).frame(maxWidth: .infinity, alignment: .leading)
@@ -106,20 +106,20 @@ private struct TodoSidebar: View {
             if model.account != nil {
                 ToolbarItem {
                     Button { Task { await model.syncNow() } } label: {
-                        if model.isSyncing { ProgressView() } else { Label("Abgleichen", systemImage: "arrow.triangle.2.circlepath") }
+                        if model.isSyncing { ProgressView() } else { Label(L("Abgleichen"), systemImage: "arrow.triangle.2.circlepath") }
                     }
                 }
             }
         }
-        .alert("Neue Liste", isPresented: $creating) {
-            TextField("Name", text: $newName)
-            Button("Anlegen") { model.createList(name: newName, color: nil); newName = "" }
-            Button("Abbrechen", role: .cancel) { newName = "" }
+        .alert(L("Neue Liste"), isPresented: $creating) {
+            TextField(L("Name"), text: $newName)
+            Button(L("Anlegen")) { model.createList(name: newName, color: nil); newName = "" }
+            Button(L("Abbrechen"), role: .cancel) { newName = "" }
         }
-        .alert("Liste umbenennen", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
-            TextField("Name", text: $renameText)
-            Button("Speichern") { if let l = renaming { model.renameList(l, name: renameText, color: l.color) } }
-            Button("Abbrechen", role: .cancel) {}
+        .alert(L("Liste umbenennen"), isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            TextField(L("Name"), text: $renameText)
+            Button(L("Speichern")) { if let l = renaming { model.renameList(l, name: renameText, color: l.color) } }
+            Button(L("Abbrechen"), role: .cancel) {}
         }
     }
 
@@ -127,7 +127,7 @@ private struct TodoSidebar: View {
         HStack(spacing: 12) {
             Image(systemName: icon).foregroundStyle(tint).frame(width: 18)
             Text(name).lineLimit(1)
-            if favorite { Image(systemName: "star.fill").font(.caption).foregroundStyle(.yellow).accessibilityLabel("Favorit") }
+            if favorite { Image(systemName: "star.fill").font(.caption).foregroundStyle(.yellow).accessibilityLabel(L("Favorit")) }
             Spacer()
             if count > 0 { Text("\(count)").font(.caption).foregroundStyle(theme.color(\.textSecondary)) }
         }
@@ -163,7 +163,7 @@ private struct TodoListView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(model.selectionTitle).font(.largeTitle.bold()).foregroundStyle(.white).lineLimit(2)
                 if model.selection == .myDay {
-                    Text(Date().formatted(date: .complete, time: .omitted)).foregroundStyle(.white.opacity(0.85))
+                    Text(Date().lwFormatted(date: .complete, time: .omitted)).foregroundStyle(.white.opacity(0.85))
                 }
             }
             .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 10)
@@ -171,7 +171,7 @@ private struct TodoListView: View {
             if model.selection != .completed {
                 HStack {
                     Image(systemName: "plus").foregroundStyle(theme.color(\.accent))
-                    TextField(model.entryTarget == nil ? "Liste wählen, um Aufgaben anzulegen" : "Aufgabe hinzufügen", text: $newTitle)
+                    TextField(model.entryTarget == nil ? L("Liste wählen, um Aufgaben anzulegen") : L("Aufgabe hinzufügen"), text: $newTitle)
                         .textFieldStyle(.plain)
                         .disabled(model.entryTarget == nil)
                         .onSubmit { model.addTask(title: newTitle); newTitle = "" }
@@ -186,7 +186,7 @@ private struct TodoListView: View {
                     .onMove { offsets, dest in model.reorder(from: offsets, to: dest) }
                 if !done.isEmpty {
                     Button { showDone.toggle() } label: {
-                        Label("Erledigt  \(done.count)", systemImage: showDone ? "chevron.down" : "chevron.right")
+                        Label(L("Erledigt  {0}", done.count), systemImage: showDone ? "chevron.down" : "chevron.right")
                             .font(.callout.weight(.semibold)).foregroundStyle(.white)
                             .padding(.horizontal, 10).padding(.vertical, 5)
                             .background(Capsule().fill(.black.opacity(0.2)))
@@ -202,7 +202,7 @@ private struct TodoListView: View {
         }
         .background(accent)
         .navigationTitle(model.selectionTitle)
-        .searchable(text: $model.searchText, prompt: "Suchen")
+        .searchable(text: $model.searchText, prompt: L("Suchen"))
         .toolbar {
             ToolbarItem { SortMenu() }
             ToolbarItem { PDFExportButton() }
@@ -238,7 +238,7 @@ struct TodoCard: View {
             }
             .buttonStyle(.plain)
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.title.isEmpty ? "Ohne Titel" : item.title)
+                Text(item.title.isEmpty ? L("Ohne Titel") : item.title)
                     .strikethrough(item.isCompleted)
                     .foregroundStyle(item.isCompleted ? theme.color(\.textSecondary) : theme.color(\.textPrimary))
                     .lineLimit(2)
@@ -263,22 +263,22 @@ struct TodoCard: View {
                 Image(systemName: on ? "star.fill" : "star").foregroundStyle(on ? theme.color(\.accent) : theme.color(\.textSecondary))
             }
             .buttonStyle(.plain)
-            .help("Wichtig") }
+            .help(L("Wichtig")) }
         }
         .padding(.vertical, 8).padding(.horizontal, 6)
     }
 
     private func subtitle(steps: [TaskRecord]) -> [(text: String, alert: Bool)] {
         var out: [(String, Bool)] = []
-        if model.isInMyDay(rec) { out.append(("☀︎ Mein Tag", false)) }
+        if model.isInMyDay(rec) { out.append(("☀︎ " + L("Mein Tag"), false)) }
         if model.selection?.isSmart == true, let l = model.list(rec.listHref) { out.append((l.name, false)) }
         if model.isPlanwerk(rec) { out.append(("Planwerk", false)) }
         if let due = rec.item.due {
             let d = due.date()
             let overdue = !rec.item.isCompleted && d < Date() && !(due.isAllDay && Calendar.current.isDateInToday(d))
-            out.append((due.isAllDay ? d.formatted(date: .abbreviated, time: .omitted) : d.formatted(date: .abbreviated, time: .shortened), overdue))
+            out.append((due.isAllDay ? d.lwFormatted(date: .abbreviated, time: .omitted) : d.lwFormatted(date: .abbreviated, time: .shortened), overdue))
         }
-        if !steps.isEmpty { out.append(("\(steps.filter(\.item.isCompleted).count) von \(steps.count)", false)) }
+        if !steps.isEmpty { out.append((L("{0} von {1}", steps.filter(\.item.isCompleted).count, steps.count), false)) }
         if !rec.item.tags.isEmpty { out.append((rec.item.tags.joined(separator: ", "), false)) }
         return out.map { (text: $0.0, alert: $0.1) }
     }
@@ -290,22 +290,22 @@ struct TaskContextMenu: View {
     let rec: TaskRecord
     var body: some View {
         if model.isPlanwerk(rec) {
-            Button("In Planwerk erledigt") { model.toggleDone(rec) }
+            Button(L("In Planwerk erledigt")) { model.toggleDone(rec) }
         } else {
             menu
         }
     }
 
     @ViewBuilder private var menu: some View {
-        Button(rec.item.isCompleted ? "Wieder öffnen" : "Erledigt") { model.toggleDone(rec) }
-        Button((1...4).contains(rec.item.priority) ? "Nicht mehr wichtig" : "Als wichtig markieren") { model.toggleImportant(rec) }
-        Button(model.isInMyDay(rec) ? "Aus „Mein Tag“ entfernen" : "Zu „Mein Tag“ hinzufügen") { model.toggleMyDay(rec.item.uid) }
-        Menu("Verschieben nach …") {
+        Button(rec.item.isCompleted ? L("Wieder öffnen") : L("Erledigt")) { model.toggleDone(rec) }
+        Button((1...4).contains(rec.item.priority) ? L("Nicht mehr wichtig") : L("Als wichtig markieren")) { model.toggleImportant(rec) }
+        Button(model.isInMyDay(rec) ? L("Aus „Mein Tag“ entfernen") : L("Zu „Mein Tag“ hinzufügen")) { model.toggleMyDay(rec.item.uid) }
+        Menu(L("Verschieben nach …")) {
             ForEach(model.lists.filter { $0.href != rec.listHref && $0.canWrite }) { l in
                 Button(l.name) { model.move(rec, to: l.href) }
             }
         }
         Divider()
-        Button("Löschen", role: .destructive) { model.delete(rec) }
+        Button(L("Löschen"), role: .destructive) { model.delete(rec) }
     }
 }

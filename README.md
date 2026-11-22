@@ -1,7 +1,26 @@
-# Listwerk (Arbeitstitel)
+# ToDo-Listwerk
 
 To-do-App mit Nextcloud-Synchronisation (CalDAV/VTODO) für macOS und iPad, mit Anbindung an Planwerk.
-Stand: Version 0.1.0, Android ist bewusst zurückgestellt.
+Angezeigter Programmname: **ToDo-Listwerk** (Repo, Bundle-ID, Datenordner und Schlüsselbund heißen weiter „Listwerk“).
+Stand: Version 0.5.0, Android ist bewusst zurückgestellt.
+
+## Fertige Mac-App laden
+
+Unter [Releases](../../releases) liegt die App als DMG und ZIP (Universal, ad-hoc signiert, nicht notarisiert).
+Hinweise zum ersten Start: `docs/RELEASE_NOTES.md`. Jeder Push auf `main` baut die App per GitHub Actions
+(`.github/workflows/macos-build.yml`) neu; ein Tag `v*` legt ein Release an.
+
+## Neu in 0.5.0 (macOS/iPad)
+
+- **Englische Übersetzung, standardmäßig aktiv.** Einstellungen → Darstellung → „Sprache / Language“.
+  Umsetzung ohne String Catalog: `L("deutscher Text")` schlägt in `Sources/ListwerkCore/Localization/L10nTable.swift`
+  nach; fehlt ein Eintrag, erscheint Deutsch. `scripts/check_translations.py` meldet fehlende Übersetzungen
+  (läuft auch im CI). Datumsformate folgen der gewählten Sprache, die Systemmenüs nach einem Neustart
+  (`AppleLanguages`).
+- **Schnelleingabe auf Englisch:** today, tomorrow, (on/next) Monday, in 3 days, at 8, 8am, 3:30pm, 8 pm, daily,
+  weekdays, weekly, every Tuesday, every 2 weeks. Deutsch funktioniert unverändert; beide Sprachen gelten immer.
+- Fehlermeldungen des Servers (`DAVError`) sind jetzt lesbar statt „error 2“.
+- `scripts/install-mac.sh` installiert `/Applications/ToDo-Listwerk.app` und entfernt die alte `Listwerk.app`.
 
 ## Neu in 0.4.0 (macOS/iPad)
 
@@ -38,7 +57,7 @@ Stand: Version 0.1.0, Android ist bewusst zurückgestellt.
 
 - `Sources/ListwerkCore`: plattformunabhängiger Kern (iCalendar-Codec, SQLite-Speicher, CalDAV-Client,
   Login Flow v2, Sync-Engine mit Dreiwege-Merge, Themes, Planwerk-Client, Erinnerungsplanung).
-- `Tests/ListwerkCoreTests`: 85 Tests, unter Linux (Swift 6.1.2) grün.
+- `Tests/ListwerkCoreTests`: Tests des Kerns (zuletzt 85 unter Linux grün; neu: englische Schnelleingabe, Übersetzung).
 - `App/Shared`: SwiftUI-Oberfläche für macOS und iPad. `App/macOS`, `App/iPad`: plattformspezifische Dateien.
 - `scripts/generate_themes.py`: erzeugt die Themes aus der offiziellen Catppuccin-Palette (MIT).
 - `shared/`: Themes, Paletten und iCalendar-Fixtures zur späteren Wiederverwendung (Android).

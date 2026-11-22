@@ -20,7 +20,7 @@ struct TaskListView: View {
                 .draggable("\(rec.listHref)\n\(rec.item.uid)")
                 .contextMenu { TaskContextMenu(rec: rec) }
                 .swipeActions(edge: .trailing) {
-                    Button("Löschen", role: .destructive) { model.delete(rec) }
+                    Button(L("Löschen"), role: .destructive) { model.delete(rec) }
                 }
                 .listRowBackground(theme.color(\.surface))
             }
@@ -29,18 +29,18 @@ struct TaskListView: View {
         .scrollContentBackground(.hidden)
         .background(ThemeBackground())
         .navigationTitle(title)
-        .searchable(text: $model.searchText, prompt: "Suchen")
+        .searchable(text: $model.searchText, prompt: L("Suchen"))
         .toolbar {
             ToolbarItem { SortMenu() }
             ToolbarItem { PDFExportButton() }
             ToolbarItem {
-                Toggle(isOn: $model.showCompleted) { Label("Erledigte zeigen", systemImage: "checkmark.circle") }
+                Toggle(isOn: $model.showCompleted) { Label(L("Erledigte zeigen"), systemImage: "checkmark.circle") }
             }
         }
         .safeAreaInset(edge: .bottom) {
             HStack {
                 Image(systemName: "plus.circle.fill").foregroundStyle(theme.color(\.accent))
-                TextField(canAdd ? "Neuer Eintrag in „\(model.entryTarget?.name ?? "")“, z. B. „Elternbrief morgen 8 Uhr !“" : "Liste wählen, um Einträge anzulegen", text: $newTitle)
+                TextField(canAdd ? L("Neuer Eintrag in „{0}“, z. B. „Elternbrief morgen 8 Uhr !“", model.entryTarget?.name ?? "") : L("Liste wählen, um Einträge anzulegen"), text: $newTitle)
                     .textFieldStyle(.plain)
                     .disabled(!canAdd)
                     .onSubmit {
@@ -53,7 +53,7 @@ struct TaskListView: View {
         }
     }
 
-    private var title: String { model.selection == .all ? "Alle" : model.selectionTitle }
+    private var title: String { model.selection == .all ? L("Alle") : model.selectionTitle }
     private var canAdd: Bool { model.entryTarget != nil && model.selection != .completed }
 }
 
@@ -74,11 +74,11 @@ struct TaskRow: View {
             }
             .buttonStyle(.plain)
             VStack(alignment: .leading, spacing: 2) {
-                Text(rec.item.title.isEmpty ? "Ohne Titel" : rec.item.title)
+                Text(rec.item.title.isEmpty ? L("Ohne Titel") : rec.item.title)
                     .strikethrough(rec.item.isCompleted)
                     .foregroundStyle(rec.item.isCompleted ? theme.color(\.textSecondary) : theme.color(\.textPrimary))
                 if model.isPlanwerk(rec) {
-                    Label("Planwerk · " + rec.item.tags.joined(), systemImage: "chart.bar.doc.horizontal")
+                    Label(L("Planwerk · ") + rec.item.tags.joined(), systemImage: "chart.bar.doc.horizontal")
                         .font(.caption).foregroundStyle(theme.color(\.textSecondary))
                 }
                 if let due = rec.item.due {
@@ -102,7 +102,7 @@ struct TaskRow: View {
     private func dueText(_ d: ICalDate) -> String {
         let date = d.date()
         return d.isAllDay
-            ? date.formatted(date: .abbreviated, time: .omitted)
-            : date.formatted(date: .abbreviated, time: .shortened)
+            ? date.lwFormatted(date: .abbreviated, time: .omitted)
+            : date.lwFormatted(date: .abbreviated, time: .shortened)
     }
 }

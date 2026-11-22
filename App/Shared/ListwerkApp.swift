@@ -6,6 +6,7 @@ struct ListwerkApp: App {
     @State private var model: AppModel
 
     init() {
+        AppModel.applyStoredLanguage()
         let m = AppModel()
         _model = State(initialValue: m)
         #if os(macOS)
@@ -26,7 +27,7 @@ struct ListwerkApp: App {
         Settings {
             SettingsView().environment(model)
         }
-        MenuBarExtra("Listwerk", systemImage: "checklist") {
+        MenuBarExtra("ToDo-Listwerk", systemImage: "checklist") {
             MenuBarView().environment(model)
         }
         .menuBarExtraStyle(.window)

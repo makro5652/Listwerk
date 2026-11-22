@@ -70,7 +70,7 @@ public struct MSTodoClient: Sendable {
             let user_code: String, device_code: String, verification_uri: String, expires_in: Int, interval: Int?
         }
         let r = try JSONDecoder().decode(R.self, from: data)
-        guard let url = URL(string: r.verification_uri) else { throw DAVError.invalidResponse("Ungültige Anmeldeadresse") }
+        guard let url = URL(string: r.verification_uri) else { throw DAVError.invalidResponse(L("Ungültige Anmeldeadresse")) }
         return DeviceCode(userCode: r.user_code, verificationURL: url, deviceCode: r.device_code,
                           interval: r.interval ?? 5, expiresIn: r.expires_in)
     }

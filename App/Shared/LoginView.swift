@@ -11,12 +11,12 @@ struct LoginView: View {
     var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "checklist").font(.system(size: 48)).foregroundStyle(theme.color(\.accent))
-            Text("Listwerk").font(.largeTitle.bold())
-            Text("Mit Nextcloud verbinden. Das Passwort geben Sie nie in dieser App ein: Die Anmeldung läuft im Browser, die App erhält ein eigenes App-Passwort.")
+            Text("ToDo-Listwerk").font(.largeTitle.bold())
+            Text(L("Mit Nextcloud verbinden. Das Passwort geben Sie nie in dieser App ein: Die Anmeldung läuft im Browser, die App erhält ein eigenes App-Passwort."))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(theme.color(\.textSecondary))
                 .frame(maxWidth: 420)
-            TextField("cloud.beispiel.de", text: $server)
+            TextField(L("cloud.beispiel.de"), text: $server)
                 .textFieldStyle(.roundedBorder)
                 .autocorrectionDisabled()
                 #if os(iOS)
@@ -28,19 +28,19 @@ struct LoginView: View {
                 busy = true
                 Task { await model.login(server: server); busy = false }
             } label: {
-                if busy { ProgressView() } else { Text("Anmelden") }
+                if busy { ProgressView() } else { Text(L("Anmelden")) }
             }
             .buttonStyle(.borderedProminent)
             .disabled(server.trimmingCharacters(in: .whitespaces).isEmpty || busy)
             if !model.onboarded {
                 // Erststart: auch ganz ohne Konto nutzbar; eine spätere Anmeldung lädt alles hoch.
-                Button("Ohne Anmeldung nutzen") { model.skipLogin() }.buttonStyle(.borderless)
-                Text("Alles bleibt auf diesem Mac. Meldest du dich später an, werden deine Listen hochgeladen und abgeglichen.")
+                Button(L("Ohne Anmeldung nutzen")) { model.skipLogin() }.buttonStyle(.borderless)
+                Text(L("Alles bleibt auf diesem Mac. Meldest du dich später an, werden deine Listen hochgeladen und abgeglichen."))
                     .font(.footnote).multilineTextAlignment(.center).frame(maxWidth: 420)
                     .foregroundStyle(theme.color(\.textSecondary))
             } else {
-                Button("Abbrechen") { model.showLogin = false }.buttonStyle(.borderless)
-                Text("Deine bisherigen Listen und Aufgaben werden nach der Anmeldung in die Nextcloud hochgeladen.")
+                Button(L("Abbrechen")) { model.showLogin = false }.buttonStyle(.borderless)
+                Text(L("Deine bisherigen Listen und Aufgaben werden nach der Anmeldung in die Nextcloud hochgeladen."))
                     .font(.footnote).multilineTextAlignment(.center).frame(maxWidth: 420)
                     .foregroundStyle(theme.color(\.textSecondary))
             }

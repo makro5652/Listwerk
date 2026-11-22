@@ -102,14 +102,17 @@ public enum Recurrence {
             return s
         }
 
-        /// „Alle 2 Wochen am Mo, Mi bis 24.12.2026“
+        /// Kurze Wochentagsnamen in `dayOrder`-Reihenfolge, in der Sprache der App (Mo … So / Mon … Sun).
+        public static var shortDayNames: [String] { ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map { L($0) } }
+
+        /// „Alle 2 Wochen am Mo, Mi bis 24.12.2026“ bzw. „Every 2 weeks on Mon, Wed until 12/24/2026“
         public var text: String {
-            let names = ["MO": "Mo", "TU": "Di", "WE": "Mi", "TH": "Do", "FR": "Fr", "SA": "Sa", "SU": "So"]
-            let one = [Freq.daily: "Täglich", .weekly: "Wöchentlich", .monthly: "Monatlich", .yearly: "Jährlich"][freq]!
-            let many = [Freq.daily: "Tage", .weekly: "Wochen", .monthly: "Monate", .yearly: "Jahre"][freq]!
-            var s = interval == 1 ? one : "Alle \(interval) \(many)"
-            if !byDay.isEmpty { s += " am " + byDay.compactMap { names[$0] }.joined(separator: ", ") }
-            if let until { s += " bis " + until.formatted(date: .numeric, time: .omitted) }
+            let names = Dictionary(uniqueKeysWithValues: zip(Self.dayOrder, Self.shortDayNames))
+            let one = [Freq.daily: L("Täglich"), .weekly: L("Wöchentlich"), .monthly: L("Monatlich"), .yearly: L("Jährlich")][freq]!
+            let many = [Freq.daily: L("Tage"), .weekly: L("Wochen"), .monthly: L("Monate"), .yearly: L("Jahre")][freq]!
+            var s = interval == 1 ? one : L("Alle {0} {1}", interval, many)
+            if !byDay.isEmpty { s += L(" am ") + byDay.compactMap { names[$0] }.joined(separator: ", ") }
+            if let until { s += L(" bis ") + until.lwFormatted(date: .numeric, time: .omitted) }
             return s
         }
     }

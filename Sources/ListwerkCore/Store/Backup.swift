@@ -21,7 +21,7 @@ public struct ListwerkBackup: Codable, Sendable {
 
 public enum BackupError: Error, LocalizedError {
     case notABackup
-    public var errorDescription: String? { "Die Datei ist keine Listwerk-Sicherung." }
+    public var errorDescription: String? { L("Die Datei ist keine Listwerk-Sicherung.") }
 }
 
 extension Store {

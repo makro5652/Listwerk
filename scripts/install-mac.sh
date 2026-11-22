@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Baut Listwerk für macOS und installiert es nach /Applications.
+# Baut ToDo-Listwerk für macOS und installiert es nach /Applications (ersetzt eine ältere Listwerk.app).
 # Ohne Sandbox (wie bisher installiert): Daten bleiben in ~/Library/Application Support/Listwerk.
 # Mit Sandbox läge die Datenbank im Container und die App startete leer.
 set -e
@@ -11,10 +11,10 @@ xcodebuild -project Listwerk.xcodeproj -scheme Listwerk-macOS -configuration Rel
 # Ad-hoc signiert fragt macOS nach jedem Neubau erneut nach dem Schlüsselbund-Passwort.
 ID=$(security find-identity -v -p codesigning | awk -F'"' '/Apple Development/ {print $2; exit}')
 if [[ -n "$ID" ]]; then
-  codesign --force --deep --options runtime --sign "$ID" build/dd/Build/Products/Release/Listwerk.app
+  codesign --force --deep --options runtime --sign "$ID" build/dd/Build/Products/Release/ToDo-Listwerk.app
 fi
-osascript -e 'quit app "Listwerk"' 2>/dev/null || true
+for n in Listwerk ToDo-Listwerk; do osascript -e "quit app \"$n\"" 2>/dev/null || true; done
 sleep 1
-rm -rf /Applications/Listwerk.app
-ditto build/dd/Build/Products/Release/Listwerk.app /Applications/Listwerk.app
-echo "Installiert: $(defaults read /Applications/Listwerk.app/Contents/Info.plist CFBundleShortVersionString)"
+rm -rf /Applications/Listwerk.app /Applications/ToDo-Listwerk.app
+ditto build/dd/Build/Products/Release/ToDo-Listwerk.app /Applications/ToDo-Listwerk.app
+echo "Installiert: $(defaults read /Applications/ToDo-Listwerk.app/Contents/Info.plist CFBundleShortVersionString)"

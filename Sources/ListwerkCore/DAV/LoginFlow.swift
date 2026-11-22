@@ -31,7 +31,7 @@ public struct LoginFlowV2: Sendable {
         req.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         let (data, resp) = try await transport.send(req)
         guard resp.statusCode == 200 else {
-            throw DAVError.http(status: resp.statusCode, detail: "Login Flow v2 nicht verfügbar")
+            throw DAVError.http(status: resp.statusCode, detail: L("Login Flow v2 nicht verfügbar"))
         }
         struct Start: Decodable {
             struct Poll: Decodable { let token: String; let endpoint: String }
@@ -40,7 +40,7 @@ public struct LoginFlowV2: Sendable {
         }
         let s = try JSONDecoder().decode(Start.self, from: data)
         guard let login = URL(string: s.login), let endpoint = URL(string: s.poll.endpoint) else {
-            throw DAVError.invalidResponse("Ungültige Adressen im Login Flow")
+            throw DAVError.invalidResponse(L("Ungültige Adressen im Login Flow"))
         }
         return Session(loginURL: login, pollEndpoint: endpoint, token: s.poll.token)
     }
@@ -57,7 +57,7 @@ public struct LoginFlowV2: Sendable {
         guard resp.statusCode == 200 else { throw DAVError.http(status: resp.statusCode, detail: "Abfrage fehlgeschlagen") }
         struct Done: Decodable { let server: String; let loginName: String; let appPassword: String }
         let d = try JSONDecoder().decode(Done.self, from: data)
-        guard let url = URL(string: d.server) else { throw DAVError.invalidResponse("Ungültige Server-Adresse") }
+        guard let url = URL(string: d.server) else { throw DAVError.invalidResponse(L("Ungültige Server-Adresse")) }
         return NextcloudCredentials(serverURL: url, loginName: d.loginName, appPassword: d.appPassword)
     }
 
@@ -69,6 +69,6 @@ public struct LoginFlowV2: Sendable {
             if let c = try await poll(session) { return c }
             try await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
         }
-        throw DAVError.network("Zeitüberschreitung bei der Anmeldung")
+        throw DAVError.network(L("Zeitüberschreitung bei der Anmeldung"))
     }
 }

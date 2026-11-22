@@ -67,6 +67,17 @@ public enum DAVError: Error, Equatable {
     case network(String)
 }
 
+extension DAVError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .unauthorized: L("Anmeldung abgelaufen oder ungültig.")
+        case .http(let status, let detail): detail.isEmpty ? L("Serverfehler {0}", status) : L("Serverfehler {0}: {1}", status, detail)
+        case .invalidResponse(let s): L("Ungültige Antwort: {0}", s)
+        case .network(let s): L("Netzwerkfehler: {0}", s)
+        }
+    }
+}
+
 /// Alles, was die Sync-Engine vom Server braucht. Pfade sind Serverpfade (`/remote.php/dav/...`).
 public protocol CalDAVService: Sendable {
     func discover() async throws -> (principal: String, home: String)

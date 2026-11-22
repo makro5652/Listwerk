@@ -23,11 +23,13 @@ struct RootView: View {
                 }
             }
         }
+        .id(model.language)
+        .environment(\.locale, L10n.locale)
         .environment(\.theme, theme)
         .tint(theme.color(\.accent))
         .background(ThemeBackground())
         .preferredColorScheme(model.themeID == ThemeCatalog.systemID ? nil : (theme.isDark ? .dark : .light))
-        .alert("Fehler", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
+        .alert(L("Fehler"), isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(model.errorMessage ?? "") }
         .onChange(of: phase) { _, new in

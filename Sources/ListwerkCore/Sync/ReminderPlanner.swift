@@ -24,7 +24,7 @@ public enum ReminderPlanner {
                 out.append(PlannedNotification(
                     id: "\(rec.listHref)|\(rec.item.uid)|\(i)",
                     fireDate: fire,
-                    title: rec.item.title.isEmpty ? "Erinnerung" : rec.item.title,
+                    title: rec.item.title.isEmpty ? L("Erinnerung") : rec.item.title,
                     body: rec.item.notes.split(separator: "\n").first.map(String.init) ?? "",
                     listHref: rec.listHref,
                     uid: rec.item.uid

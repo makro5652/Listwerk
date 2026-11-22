@@ -64,11 +64,11 @@ public struct CalDAVClient: CalDAVService {
 
     private func url(for path: String) throws -> URL {
         guard var c = URLComponents(url: serverURL, resolvingAgainstBaseURL: false) else {
-            throw DAVError.invalidResponse("Ungültige Server-Adresse")
+            throw DAVError.invalidResponse(L("Ungültige Server-Adresse"))
         }
         c.percentEncodedPath = path
         c.query = nil
-        guard let u = c.url else { throw DAVError.invalidResponse("Ungültiger Pfad: \(path)") }
+        guard let u = c.url else { throw DAVError.invalidResponse(L("Ungültiger Pfad: {0}", path)) }
         return u
     }
 
@@ -321,7 +321,7 @@ public struct CalDAVClient: CalDAVService {
         let (_, resp) = try await transport.send(req)
         if resp.statusCode == 401 { throw DAVError.unauthorized }
         guard [200, 204, 404].contains(resp.statusCode) else {
-            throw DAVError.http(status: resp.statusCode, detail: "Liste konnte nicht gelöscht werden")
+            throw DAVError.http(status: resp.statusCode, detail: L("Liste konnte nicht gelöscht werden"))
         }
     }
 }

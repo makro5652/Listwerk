@@ -14,7 +14,7 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 10) {
             QuickEntryView()
             Divider()
-            Text(today.isEmpty ? "Heute nichts fällig." : "Heute und überfällig").font(.headline)
+            Text(today.isEmpty ? L("Heute nichts fällig.") : L("Heute und überfällig")).font(.headline)
             ScrollView {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(today.prefix(30)) { rec in
@@ -30,17 +30,19 @@ struct MenuBarView: View {
             .frame(maxHeight: 260)
             Divider()
             HStack {
-                Button("Listwerk öffnen") {
+                Button(L("ToDo-Listwerk öffnen")) {
                     openWindow(id: "main")
                     NSApp.activate(ignoringOtherApps: true)
                 }
                 Spacer()
-                Text("⌃⌥N: Schnelleingabe").font(.caption).foregroundStyle(.secondary)
-                Button("Beenden") { NSApp.terminate(nil) }
+                Text(L("⌃⌥N: Schnelleingabe")).font(.caption).foregroundStyle(.secondary)
+                Button(L("Beenden")) { NSApp.terminate(nil) }
             }
         }
         .padding(12)
         .frame(width: 380)
+        .id(model.language)
+        .environment(\.locale, L10n.locale)
     }
 }
 
@@ -71,7 +73,7 @@ final class QuickEntryPanel {
         }, 1, &spec, nil, nil)
         let id = EventHotKeyID(signature: OSType(0x4C57_524B), id: 1)   // 'LWRK'
         let status = RegisterEventHotKey(UInt32(kVK_ANSI_N), UInt32(controlKey | optionKey), id, GetApplicationEventTarget(), 0, &hotKey)
-        if status != noErr { model.statusMessage = "Kürzel ⌃⌥N ist schon belegt." }
+        if status != noErr { model.statusMessage = L("Kürzel ⌃⌥N ist schon belegt.") }
     }
 
     private func toggle() {

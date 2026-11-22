@@ -238,7 +238,7 @@ public actor SyncEngine {
             try await finishUpload(merged, href: href, etag: etag)
             report.pushed += 1
         case .preconditionFailed:
-            report.errors.append("„\(rec.item.title)“: Konflikt, wird beim nächsten Abgleich erneut versucht")
+            report.errors.append(L("„{0}“: Konflikt, wird beim nächsten Abgleich erneut versucht", rec.item.title))
         }
     }
 
