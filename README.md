@@ -8,7 +8,8 @@ Stand: Version 0.5.0, Android ist bewusst zurückgestellt.
 
 Unter [Releases](../../releases) liegt die App als DMG und ZIP (Universal, ad-hoc signiert, nicht notarisiert).
 Hinweise zum ersten Start: `docs/RELEASE_NOTES.md`. Jeder Push auf `main` baut die App per GitHub Actions
-(`.github/workflows/macos-build.yml`) neu; ein Tag `v*` legt ein Release an.
+(`.github/workflows/macos-build.yml`) neu (Download unter Actions → Lauf → Artifacts). Ein Release entsteht mit
+Actions → macOS-Build → „Run workflow“ oder durch einen Tag `v*`.
 
 ## Neu in 0.5.0 (macOS/iPad)
 

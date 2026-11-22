@@ -1,5 +1,6 @@
 # Baut ToDo-Listwerk für macOS (Universal: Apple Silicon und Intel), ad-hoc signiert.
-# Jeder Push auf main: Build als Artefakt. Tag „v*“: zusätzlich GitHub-Release mit ZIP und DMG.
+# Jeder Push auf main: Build als Artefakt. Release mit ZIP und DMG: Tag „v*“ pushen oder unter
+# Actions → macOS-Build → „Run workflow“ starten (legt Tag v<Version> und Release an).
 name: macOS-Build
 
 on:
@@ -7,6 +8,11 @@ on:
     branches: [main]
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      release:
+        description: "Release v<Version> mit ZIP und DMG anlegen"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -15,7 +21,7 @@ jobs:
   build:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Übersetzungen prüfen
         run: python3 scripts/check_translations.py
@@ -56,6 +62,7 @@ jobs:
           codesign --force --deep --options runtime --sign - "$APP"
           codesign --verify --deep --strict "$APP"
           VERSION=$(defaults read "$PWD/$APP/Contents/Info.plist" CFBundleShortVersionString)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "::notice title=Version::ToDo-Listwerk $VERSION ($(lipo -archs "$APP/Contents/MacOS/ToDo-Listwerk"))"
           mkdir -p dist dmg
           ditto -c -k --keepParent "$APP" "dist/ToDo-Listwerk-$VERSION-macOS.zip"
@@ -70,8 +77,10 @@ jobs:
           path: dist/*
 
       - name: Release anlegen
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/* --title "ToDo-Listwerk $GITHUB_REF_NAME" --notes-file docs/RELEASE_NOTES.md
+          TAG="$GITHUB_REF_NAME"
+          [[ "$GITHUB_REF" == refs/tags/v* ]] || TAG="v$VERSION"
+          gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "ToDo-Listwerk $TAG" --notes-file docs/RELEASE_NOTES.md
